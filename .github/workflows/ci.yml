@@ -90,3 +90,8 @@ jobs:
         run: |
           cd build
           cmake --build . -j
+
+      - name: Run Tests
+        run: |
+          cd build
+          ctest -C Debug --output-on-failure

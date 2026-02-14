@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.10...3.31)
 
 if(DEFINED CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING "Choose the type of build, options are: Debug, Release, RelWithDebInfo")
@@ -13,18 +13,12 @@ set(ARCH native CACHE STRING  "CPU to build for: -march value or native")
 
 message(STATUS "Building for target architecture: ${ARCH}")
 
-set(LIB_MAJOR_VERSION "1")
+set(LIB_MAJOR_VERSION "2")
 set(LIB_MINOR_VERSION "0")
-set(LIB_PATCH_VERSION "1")
+set(LIB_PATCH_VERSION "0")
 set(LIB_VERSION_STRING "${LIB_MAJOR_VERSION}.${LIB_MINOR_VERSION}.${LIB_PATCH_VERSION}")
 
-if(CMAKE_VERSION VERSION_LESS 3.0)
-    project(uint256t CXX)
-    enable_language(CXX)
-else()
-    cmake_policy(SET CMP0048 NEW)
-    project(uint256t VERSION "${LIB_VERSION_STRING}" LANGUAGES CXX)
-endif()
+project(uint256t VERSION "${LIB_VERSION_STRING}" LANGUAGES CXX)
 
 if(NOT MSVC)
     find_program(CCACHE_PROGRAM ccache)
@@ -41,7 +35,7 @@ set(CMAKE_SKIP_PACKAGE_ALL_DEPENDENCY ON FORCE)
 set(CMAKE_SUPPRESS_REGENERATION ON)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
-# Enable c++11
+# Enable c++17
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -100,3 +94,13 @@ set(UINT256T_SRC
 
 add_library(uint256t STATIC ${UINT256T_SRC})
 target_include_directories(uint256t PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+option(BUILD_TESTS "Build test executables" ON)
+if(BUILD_TESTS)
+    enable_testing()
+
+    add_executable(uint256-tests tests/test_all.cpp)
+    target_link_libraries(uint256-tests PRIVATE uint256t)
+    target_include_directories(uint256-tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+    add_test(NAME uint256-tests COMMAND uint256-tests)
+endif()

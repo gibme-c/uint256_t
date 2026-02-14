@@ -23,12 +23,13 @@
 
 #include "uint128_t.build"
 
+#include <cstring>
 #include <iostream>
 
 const uint128_t uint128_0(0);
 const uint128_t uint128_1(1);
 
-uint128_t::uint128_t(std::string &s)
+uint128_t::uint128_t(const std::string &s)
 {
     init(s.c_str());
 }
@@ -42,18 +43,31 @@ uint128_t::uint128_t(const bool &b): uint128_t((uint8_t)b) {}
 
 void uint128_t::init(const char *s)
 {
-    if (s == NULL || s[0] == 0)
+    if (s == NULL || s[0] == '\0')
     {
-        uint128_t();
+        UPPER = 0;
+        LOWER = 0;
         return;
     }
-    if (s[1] == 'x')
+    if (s[0] == '0' && s[1] == 'x')
         s += 2;
     else if (*s == 'x')
         s++;
 
-    UPPER = ConvertToUint64(s);
-    LOWER = ConvertToUint64(s + 16);
+    int len = strlen(s);
+    if (len > 32)
+    {
+        s += (len - 32);
+        len = 32;
+    }
+
+    char buffer[32];
+    int padLength = 32 - len;
+    memset(buffer, '0', padLength);
+    memcpy(buffer + padLength, s, len);
+
+    UPPER = ConvertToUint64(buffer);
+    LOWER = ConvertToUint64(buffer + 16);
 }
 
 uint64_t uint128_t::ConvertToUint64(const char *s) const
@@ -514,9 +528,9 @@ uint8_t uint128_t::bits() const
 
 std::string uint128_t::str(uint8_t base, const unsigned int &len) const
 {
-    if ((base < 2) || (base > 16))
+    if ((base < 2) || (base > 36))
     {
-        throw std::invalid_argument("Base must be in the range [2, 16]");
+        throw std::invalid_argument("Base must be in the range [2, 36]");
     }
     std::string out = "";
     if (!(*this))
@@ -529,7 +543,7 @@ std::string uint128_t::str(uint8_t base, const unsigned int &len) const
         do
         {
             qr = divmod(qr.first, base);
-            out = "0123456789abcdef"[(uint8_t)qr.second] + out;
+            out = "0123456789abcdefghijklmnopqrstuvwxyz"[(uint8_t)qr.second] + out;
         } while (qr.first);
     }
     if (out.size() < len)

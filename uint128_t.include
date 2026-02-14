@@ -79,7 +79,7 @@ class EXPORTDLL uint128_t
     uint128_t() = default;
     uint128_t(const uint128_t &rhs) = default;
     uint128_t(uint128_t &&rhs) = default;
-    uint128_t(std::string &s);
+    uint128_t(const std::string &s);
     uint128_t(const char *s);
     uint128_t(const bool &b);
 
@@ -429,7 +429,7 @@ class EXPORTDLL uint128_t
 UINT256_T_EXTERN extern const uint128_t uint128_0;
 UINT256_T_EXTERN extern const uint128_t uint128_1;
 
-// lhs type T as first arguemnt
+// lhs type T as first argument
 // If the output is not a bool, casts to type T
 
 // Bitwise Operators

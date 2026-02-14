@@ -58,29 +58,36 @@ uint256_t::uint256_t(const bool &b): uint256_t((uint8_t)b) {}
 
 void uint256_t::init(const char *s)
 {
-    // create from string
-    char buffer[64];
-    if (s == NULL)
+    if (s == NULL || s[0] == '\0')
     {
-        uint256_t();
+        UPPER = uint128_0;
+        LOWER = uint128_0;
         return;
     }
-    if (s[1] == 'x')
+    if (s[0] == '0' && s[1] == 'x')
         s += 2;
     else if (*s == 'x')
         s++;
 
     int len = strlen(s);
-    int padLength = 0;
-    if (len < 64)
+    // A uint256_t is at most 64 hex digits; skip leading excess
+    if (len > 64)
     {
-        padLength = 64 - len;
-        memset(buffer, '0', padLength);
+        s += (len - 64);
+        len = 64;
     }
 
+    char buffer[65];
+    int padLength = 64 - len;
+    memset(buffer, '0', padLength);
     memcpy(buffer + padLength, s, len);
+    buffer[64] = '\0';
 
+    // Temporarily null-terminate the upper half
+    char save = buffer[32];
+    buffer[32] = '\0';
     UPPER = uint128_t(buffer);
+    buffer[32] = save;
     LOWER = uint128_t(buffer + 32);
 }
 
@@ -578,7 +585,7 @@ uint256_t uint256_t::operator%(const uint128_t &rhs) const
 
 uint256_t uint256_t::operator%(const uint256_t &rhs) const
 {
-    return *this - (rhs * (*this / rhs));
+    return divmod(*this, rhs).second;
 }
 
 uint256_t &uint256_t::operator%=(const uint128_t &rhs)
@@ -651,9 +658,9 @@ std::vector<uint8_t> uint256_t::export_bits_truncate() const
 {
     std::vector<uint8_t> ret = export_bits();
 
-    // prune the zeroes
-    int i = 0;
-    while (ret[i] == 0 && i < 64)
+    // prune leading zeroes, but always keep at least one byte
+    size_t i = 0;
+    while (i < ret.size() - 1 && ret[i] == 0)
         i++;
     ret.erase(ret.begin(), ret.begin() + i);
 
