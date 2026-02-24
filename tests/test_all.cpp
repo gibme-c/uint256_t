@@ -1551,7 +1551,7 @@ void test_uint256_string()
 
     // 0x prefix handling
     CHECK(uint256_t("0xFF") == uint256_t(255));
-    CHECK(uint256_t("xFF") == uint256_t(255));
+    CHECK(uint256_t("xFF") == uint256_0);  // standalone 'x' prefix no longer accepted
     CHECK(uint256_t("0x0") == uint256_0);
 
     // Mixed case hex
@@ -1638,6 +1638,113 @@ void test_uint256_functions()
 }
 
 // ============================================================================
+// test_audit_fixes — validates all security/hardness audit fixes
+// ============================================================================
+void test_audit_fixes()
+{
+    // Fix #2: Default constructors zero-initialize
+    {
+        uint256_t a;
+        CHECK_EQ(a, 0);
+        CHECK_EQ(a.upper(), uint128_0);
+        CHECK_EQ(a.lower(), uint128_0);
+
+        uint128_t b;
+        CHECK(b.upper() == 0ULL);
+        CHECK(b.lower() == 0ULL);
+        CHECK(b == uint128_t(0));
+    }
+
+    // Fix #1: operator&& / operator|| with mixed types does not stack overflow
+    {
+        uint128_t val128(42);
+        CHECK_EQ(val128 && 1, true);
+        CHECK_EQ(val128 && 0, false);
+        CHECK_EQ(val128 || 0, true);
+        CHECK_EQ(uint128_t(0) || 0, false);
+        CHECK_EQ(uint128_t(0) && 1, false);
+
+        uint256_t val256(42);
+        CHECK_EQ(val256 && 1, true);
+        CHECK_EQ(val256 && 0, false);
+        CHECK_EQ(val256 || 0, true);
+        CHECK_EQ(uint256_t(0) || 0, false);
+        CHECK_EQ(uint256_t(0) && 1, false);
+    }
+
+    // Fix #3a: init_from_base with NULL/empty
+    {
+        CHECK_EQ(uint256_t((const char *)nullptr, 10), 0);
+        CHECK_EQ(uint256_t("", 10), 0);
+    }
+
+    // Fix #3b: init_from_base uppercase support
+    {
+        CHECK_EQ(uint256_t("FF", 16), 255);
+        CHECK_EQ(uint256_t("ff", 16), 255);
+        CHECK_EQ(uint256_t("Ff", 16), 255);
+        CHECK_EQ(uint256_t("ABC", 16), 0xABC);
+        CHECK_EQ(uint256_t("abc", 16), 0xABC);
+    }
+
+    // Fix #3c: init_from_base rejects invalid digits
+    {
+        CHECK_THROW(uint256_t("9", 8), std::invalid_argument);
+        CHECK_THROW(uint256_t("g", 16), std::invalid_argument);
+        CHECK_THROW(uint256_t("!", 10), std::invalid_argument);
+    }
+
+    // Fix #10: explicit conversions require casts
+    {
+        uint128_t v128(0x42);
+        uint8_t u8 = (uint8_t)v128;
+        CHECK(u8 == 0x42);
+
+        uint256_t v256(0x1234);
+        uint16_t u16 = (uint16_t)v256;
+        CHECK(u16 == 0x1234);
+
+        uint128_t from256 = (uint128_t)v256;
+        CHECK(from256 == uint128_t(0x1234));
+    }
+}
+
+// ============================================================================
+// test_audit_fixes_pass2
+// ============================================================================
+void test_audit_fixes_pass2()
+{
+    // Fix #1: const qualifier on uint128_t template operator&&/operator||
+    {
+        const uint128_t ca(0x42);
+        const uint128_t cb(0x0);
+        CHECK_EQ((ca && 1), true);
+        CHECK_EQ((cb && 1), false);
+        CHECK_EQ((ca || 0), true);
+        CHECK_EQ((cb || 0), false);
+        CHECK_EQ((ca && ca), true);
+        CHECK_EQ((cb || cb), false);
+    }
+
+    // Fix #1 (pass 3): init_from_base rejects invalid base values
+    {
+        CHECK_THROW(uint256_t("0", 0), std::invalid_argument);
+        CHECK_THROW(uint256_t("0", 1), std::invalid_argument);
+        CHECK_THROW(uint256_t("0", 37), std::invalid_argument);
+    }
+
+    // Fix #6: standalone 'x' prefix no longer accepted as hex
+    {
+        // "xABC" — 'x' is not a valid hex digit, so ConvertToUint64 stops immediately → 0
+        CHECK_EQ(uint128_t("xABC"), 0);
+        CHECK_EQ(uint256_t("xABC"), 0);
+        // "0xABC" should still work
+        CHECK_EQ(uint128_t("0xABC"), 0xABC);
+        CHECK_EQ(uint256_t("0xABC"), 0xABC);
+    }
+}
+
+// ============================================================================
 // main
 // ============================================================================
 int main()
@@ -1672,6 +1779,8 @@ int main()
     test_uint256_error();
     test_uint256_string();
     test_uint256_functions();
+    test_audit_fixes();
+    test_audit_fixes_pass2();
 
     TEST_RESULTS("all");
 }

@@ -48,6 +48,7 @@ static int _tests_passed = 0;
     {                                                                                                                  \
         _tests_run++;                                                                                                  \
         bool caught = false;                                                                                           \
+        bool wrong_type = false;                                                                                       \
         try                                                                                                            \
         {                                                                                                              \
             (void)(expr);                                                                                              \
@@ -58,14 +59,21 @@ static int _tests_passed = 0;
         }                                                                                                              \
         catch (...)                                                                                                    \
         {                                                                                                              \
+            wrong_type = true;                                                                                         \
         }                                                                                                              \
         if (caught)                                                                                                    \
         {                                                                                                              \
             _tests_passed++;                                                                                           \
         }                                                                                                              \
+        else if (wrong_type)                                                                                           \
+        {                                                                                                              \
+            std::cerr << "FAIL (wrong exception type, expected " << #exception_type << "): " << #expr << " ("          \
+                      << __FILE__ << ":" << __LINE__ << ")" << std::endl;                                              \
+        }                                                                                                              \
         else                                                                                                           \
         {                                                                                                              \
-            std::cerr << "FAIL (no throw): " << #expr << " (" << __FILE__ << ":" << __LINE__ << ")" << std::endl;      \
+            std::cerr << "FAIL (no throw, expected " << #exception_type << "): " << #expr << " (" << __FILE__ << ":"   \
+                      << __LINE__ << ")" << std::endl;                                                                 \
         }                                                                                                              \
     } while (0)
 

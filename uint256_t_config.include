@@ -21,21 +21,21 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef _UINT256_T_CONFIG_
-#define _UINT256_T_CONFIG_
+#ifndef UINT256T_CONFIG_H
+#define UINT256T_CONFIG_H
 #if defined(_MSC_VER)
 #if defined(_DLL)
-#define _UINT256_T_EXPORT __declspec(dllexport)
-#define _UINT256_T_IMPORT
+#define UINT256T_EXPORT __declspec(dllexport)
+#define UINT256T_IMPORT
 #else
-#define _UINT256_T_EXPORT
-#define _UINT256_T_IMPORT
+#define UINT256T_EXPORT
+#define UINT256T_IMPORT
 #endif
 #else // _MSC_VER
 // All modules on Unix are compiled with -fvisibility=hidden
 // All API symbols get visibility default
 // whether or not we're static linking or dynamic linking (with -fPIC)
-#define _UINT256_T_EXPORT __attribute__((visibility("default")))
-#define _UINT256_T_IMPORT __attribute__((visibility("default")))
+#define UINT256T_EXPORT __attribute__((visibility("default")))
+#define UINT256T_IMPORT __attribute__((visibility("default")))
 #endif // _MSC_VER
-#endif // _UINT256_T_CONFIG_
+#endif // UINT256T_CONFIG_H

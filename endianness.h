@@ -21,8 +21,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef _ENDIANNESS_H_
-#define _ENDIANNESS_H_
+#ifndef ENDIANNESS_H
+#define ENDIANNESS_H
 
 #if (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __BIG_ENDIAN)                                                      \
     || (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__) || defined(__BIG_ENDIAN__)                \
@@ -44,4 +44,4 @@
 #error "I don't know what architecture this is!"
 #endif // FALL_THROUGH
 
-#endif // _ENDIANNESS_H_
+#endif // ENDIANNESS_H

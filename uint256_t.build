@@ -25,10 +25,10 @@
 #include "uint128_t.include"
 #undef UINT256_T_EXTERN
 
-#ifndef _UINT256_T_BUILD
-#define _UINT256_T_BUILD
+#ifndef UINT256T_BUILD_H
+#define UINT256T_BUILD_H
 #include "uint256_t_config.include"
-#define UINT256_T_EXTERN _UINT256_T_EXPORT
-#endif // _UINT256_T_BUILD
+#define UINT256_T_EXTERN UINT256T_EXPORT
+#endif // UINT256T_BUILD_H
 
 #include "uint256_t.include"

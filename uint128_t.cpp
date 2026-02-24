@@ -51,20 +51,19 @@ void uint128_t::init(const char *s)
     }
     if (s[0] == '0' && s[1] == 'x')
         s += 2;
-    else if (*s == 'x')
-        s++;
 
-    int len = strlen(s);
+    size_t len = strlen(s);
     if (len > 32)
     {
         s += (len - 32);
         len = 32;
     }
 
-    char buffer[32];
-    int padLength = 32 - len;
+    char buffer[33];
+    size_t padLength = 32 - len;
     memset(buffer, '0', padLength);
     memcpy(buffer + padLength, s, len);
+    buffer[32] = '\0';
 
     UPPER = ConvertToUint64(buffer);
     LOWER = ConvertToUint64(buffer + 16);
@@ -268,7 +267,7 @@ bool uint128_t::operator==(const uint128_t &rhs) const
 
 bool uint128_t::operator!=(const uint128_t &rhs) const
 {
-    return ((UPPER != rhs.UPPER) | (LOWER != rhs.LOWER));
+    return ((UPPER != rhs.UPPER) || (LOWER != rhs.LOWER));
 }
 
 bool uint128_t::operator>(const uint128_t &rhs) const
@@ -291,12 +290,12 @@ bool uint128_t::operator<(const uint128_t &rhs) const
 
 bool uint128_t::operator>=(const uint128_t &rhs) const
 {
-    return ((*this > rhs) | (*this == rhs));
+    return ((*this > rhs) || (*this == rhs));
 }
 
 bool uint128_t::operator<=(const uint128_t &rhs) const
 {
-    return ((*this < rhs) | (*this == rhs));
+    return ((*this < rhs) || (*this == rhs));
 }
 
 uint128_t uint128_t::operator+(const uint128_t &rhs) const
@@ -391,8 +390,8 @@ void uint128_t::ConvertToVector(std::vector<uint8_t> &ret, const uint64_t &val) 
 
 void uint128_t::export_bits(std::vector<uint8_t> &ret) const
 {
-    ConvertToVector(ret, const_cast<const uint64_t &>(UPPER));
-    ConvertToVector(ret, const_cast<const uint64_t &>(LOWER));
+    ConvertToVector(ret, UPPER);
+    ConvertToVector(ret, LOWER);
 }
 
 std::pair<uint128_t, uint128_t> uint128_t::divmod(const uint128_t &lhs, const uint128_t &rhs) const

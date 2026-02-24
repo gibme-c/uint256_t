@@ -21,16 +21,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef __UINT128_T__
-#define __UINT128_T__
-
-#ifndef EXPORTDLL
-#ifdef _WIN32
-#define EXPORTDLL __declspec(dllexport)
-#else
-#define EXPORTDLL
-#endif
-#endif
+#ifndef UINT128_T_INCLUDE_H
+#define UINT128_T_INCLUDE_H
 
 #include "endianness.h"
 
@@ -64,21 +56,20 @@ namespace std {
     struct is_unsigned_or_mytype<uint128_t> : std::true_type {};
 }
 
-class EXPORTDLL uint128_t
+class UINT256_T_EXTERN uint128_t
 {
   private:
 #ifdef __BIG_ENDIAN__
     uint64_t UPPER, LOWER;
-#endif
-#ifdef __LITTLE_ENDIAN__
+#elif defined(__LITTLE_ENDIAN__)
     uint64_t LOWER, UPPER;
 #endif
 
   public:
     // Constructors
-    uint128_t() = default;
+    uint128_t() : UPPER(0), LOWER(0) {}
     uint128_t(const uint128_t &rhs) = default;
-    uint128_t(uint128_t &&rhs) = default;
+    uint128_t(uint128_t &&rhs) noexcept = default;
     uint128_t(const std::string &s);
     uint128_t(const char *s);
     uint128_t(const bool &b);
@@ -125,7 +116,7 @@ class EXPORTDLL uint128_t
 
     // Assignment Operator
     uint128_t &operator=(const uint128_t &rhs) = default;
-    uint128_t &operator=(uint128_t &&rhs) = default;
+    uint128_t &operator=(uint128_t &&rhs) noexcept = default;
 
     template<typename T, typename = typename std::enable_if<std::is_integral_or_mytype<T>::value, T>::type>
     uint128_t &operator=(const T &rhs)
@@ -148,10 +139,10 @@ class EXPORTDLL uint128_t
 
     // Typecast Operators
     operator bool() const;
-    operator uint8_t() const;
-    operator uint16_t() const;
-    operator uint32_t() const;
-    operator uint64_t() const;
+    explicit operator uint8_t() const;
+    explicit operator uint16_t() const;
+    explicit operator uint32_t() const;
+    explicit operator uint64_t() const;
 
     // Bitwise Operators
     uint128_t operator&(const uint128_t &rhs) const;
@@ -251,15 +242,15 @@ class EXPORTDLL uint128_t
     bool operator||(const uint128_t &rhs) const;
 
     template<typename T, typename = typename std::enable_if<std::is_integral_or_mytype<T>::value, T>::type>
-    bool operator&&(const T &rhs)
+    bool operator&&(const T &rhs) const
     {
-        return static_cast<bool>(*this && rhs);
+        return ((bool)*this && (bool)uint128_t(rhs));
     }
 
     template<typename T, typename = typename std::enable_if<std::is_integral_or_mytype<T>::value, T>::type>
-    bool operator||(const T &rhs)
+    bool operator||(const T &rhs) const
     {
-        return static_cast<bool>(*this || rhs);
+        return ((bool)*this || (bool)uint128_t(rhs));
     }
 
     // Comparison Operators
@@ -276,7 +267,7 @@ class EXPORTDLL uint128_t
     template<typename T, typename = typename std::enable_if<std::is_integral_or_mytype<T>::value, T>::type>
     bool operator!=(const T &rhs) const
     {
-        return (UPPER | (LOWER != (uint64_t)rhs));
+        return (UPPER || (LOWER != (uint64_t)rhs));
     }
 
     bool operator>(const uint128_t &rhs) const;
@@ -300,7 +291,7 @@ class EXPORTDLL uint128_t
     template<typename T, typename = typename std::enable_if<std::is_integral_or_mytype<T>::value, T>::type>
     bool operator>=(const T &rhs) const
     {
-        return ((*this > rhs) | (*this == rhs));
+        return ((*this > rhs) || (*this == rhs));
     }
 
     bool operator<=(const uint128_t &rhs) const;
@@ -308,7 +299,7 @@ class EXPORTDLL uint128_t
     template<typename T, typename = typename std::enable_if<std::is_integral_or_mytype<T>::value, T>::type>
     bool operator<=(const T &rhs) const
     {
-        return ((*this < rhs) | (*this == rhs));
+        return ((*this < rhs) || (*this == rhs));
     }
 
     // Arithmetic Operators
@@ -512,7 +503,7 @@ bool operator==(const T &lhs, const uint128_t &rhs)
 template<typename T, typename = typename std::enable_if<std::is_integral_or_mytype<T>::value, T>::type>
 bool operator!=(const T &lhs, const uint128_t &rhs)
 {
-    return (rhs.upper() | ((uint64_t)lhs != rhs.lower()));
+    return (rhs.upper() || ((uint64_t)lhs != rhs.lower()));
 }
 
 template<typename T, typename = typename std::enable_if<std::is_integral_or_mytype<T>::value, T>::type>

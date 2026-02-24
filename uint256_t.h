@@ -21,11 +21,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef _UINT256_H_
-#define _UINT256_H_
+#ifndef UINT256_H
+#define UINT256_H
 
 #include "uint256_t_config.include"
-#define UINT256_T_EXTERN _UINT256_T_IMPORT
+#define UINT256_T_EXTERN UINT256T_IMPORT
 #include "uint128_t.h"
 #include "uint256_t.include"
-#endif // _UINT256_H_
+#endif // UINT256_H

@@ -66,10 +66,8 @@ void uint256_t::init(const char *s)
     }
     if (s[0] == '0' && s[1] == 'x')
         s += 2;
-    else if (*s == 'x')
-        s++;
 
-    int len = strlen(s);
+    size_t len = strlen(s);
     // A uint256_t is at most 64 hex digits; skip leading excess
     if (len > 64)
     {
@@ -78,7 +76,7 @@ void uint256_t::init(const char *s)
     }
 
     char buffer[65];
-    int padLength = 64 - len;
+    size_t padLength = 64 - len;
     memset(buffer, '0', padLength);
     memcpy(buffer + padLength, s, len);
     buffer[64] = '\0';
@@ -93,14 +91,25 @@ void uint256_t::init(const char *s)
 
 void uint256_t::init_from_base(const char *s, uint8_t base)
 {
+    if (s == NULL || s[0] == '\0')
+    {
+        UPPER = uint128_0;
+        LOWER = uint128_0;
+        return;
+    }
+
+    if (base < 2 || base > 36)
+    {
+        throw std::invalid_argument("Base must be in the range [2, 36]");
+    }
+
     *this = 0;
 
     uint256_t power(1);
-    uint8_t digit;
-    int pos = strlen(s) - 1;
+    int pos = static_cast<int>(strlen(s)) - 1;
     while (pos >= 0)
     {
-        digit = 0;
+        uint8_t digit;
         if ('0' <= s[pos] && s[pos] <= '9')
         {
             digit = s[pos] - '0';
@@ -109,6 +118,20 @@ void uint256_t::init_from_base(const char *s, uint8_t base)
         {
             digit = s[pos] - 'a' + 10;
         }
+        else if ('A' <= s[pos] && s[pos] <= 'Z')
+        {
+            digit = s[pos] - 'A' + 10;
+        }
+        else
+        {
+            throw std::invalid_argument("Invalid character in string");
+        }
+
+        if (digit >= base)
+        {
+            throw std::invalid_argument("Digit out of range for base");
+        }
+
         *this += digit * power;
         pos--;
         power *= base;
@@ -280,7 +303,7 @@ uint256_t uint256_t::operator>>(const uint128_t &rhs) const
 uint256_t uint256_t::operator>>(const uint256_t &rhs) const
 {
     const uint128_t shift = rhs.LOWER;
-    if (((bool)rhs.UPPER) | (shift >= uint128_256))
+    if (((bool)rhs.UPPER) || (shift >= uint128_256))
     {
         return uint256_0;
     }
@@ -359,7 +382,7 @@ bool uint256_t::operator!=(const uint128_t &rhs) const
 
 bool uint256_t::operator!=(const uint256_t &rhs) const
 {
-    return ((UPPER != rhs.UPPER) | (LOWER != rhs.LOWER));
+    return ((UPPER != rhs.UPPER) || (LOWER != rhs.LOWER));
 }
 
 bool uint256_t::operator>(const uint128_t &rhs) const
@@ -405,7 +428,7 @@ bool uint256_t::operator>=(const uint128_t &rhs) const
 
 bool uint256_t::operator>=(const uint256_t &rhs) const
 {
-    return ((*this > rhs) | (*this == rhs));
+    return ((*this > rhs) || (*this == rhs));
 }
 
 bool uint256_t::operator<=(const uint128_t &rhs) const
@@ -415,7 +438,7 @@ bool uint256_t::operator<=(const uint128_t &rhs) const
 
 bool uint256_t::operator<=(const uint256_t &rhs) const
 {
-    return ((*this < rhs) | (*this == rhs));
+    return ((*this < rhs) || (*this == rhs));
 }
 
 uint256_t uint256_t::operator+(const uint128_t &rhs) const
