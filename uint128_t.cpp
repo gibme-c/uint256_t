@@ -329,9 +329,9 @@ uint128_t uint128_t::operator*(const uint128_t &rhs) const
     uint64_t products[4][4];
 
     // multiply each component of the values
-    for (int y = 3; y > -1; y--)
+    for (size_t y = 0; y < 4; y++)
     {
-        for (int x = 3; x > -1; x--)
+        for (size_t x = 0; x < 4; x++)
         {
             products[3 - x][y] = top[x] * bottom[y];
         }

@@ -58,7 +58,11 @@ class UINT256_T_EXTERN uint256_t
 
   public:
     // Constructors
+#ifdef __BIG_ENDIAN__
     uint256_t() : UPPER(), LOWER() {}
+#elif defined(__LITTLE_ENDIAN__)
+    uint256_t() : LOWER(), UPPER() {}
+#endif
     uint256_t(const uint256_t &rhs) = default;
     uint256_t(uint256_t &&rhs) noexcept = default;
     uint256_t(const std::string &s);
@@ -83,7 +87,7 @@ class UINT256_T_EXTERN uint256_t
         {
             if (rhs < 0)
             {
-                UPPER = uint128_t(-1, -1);
+                UPPER = uint128_t(~uint64_t{0}, ~uint64_t{0});
             }
         }
     }
@@ -169,7 +173,7 @@ class UINT256_T_EXTERN uint256_t
         {
             if (rhs < 0)
             {
-                UPPER = uint128_t(-1, -1);
+                UPPER = uint128_t(~uint64_t{0}, ~uint64_t{0});
             }
         }
 

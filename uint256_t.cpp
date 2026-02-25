@@ -32,7 +32,7 @@ const uint128_t uint128_128(128);
 const uint128_t uint128_256(256);
 const uint256_t uint256_0(0);
 const uint256_t uint256_1(1);
-const uint256_t uint256_max(uint128_t((uint64_t)-1, (uint64_t)-1), uint128_t((uint64_t)-1, (uint64_t)-1));
+const uint256_t uint256_max(uint128_t(~uint64_t {0}, ~uint64_t {0}), uint128_t(~uint64_t {0}, ~uint64_t {0}));
 
 uint256_t::uint256_t(const std::string &s)
 {
@@ -112,15 +112,15 @@ void uint256_t::init_from_base(const char *s, uint8_t base)
         uint8_t digit;
         if ('0' <= s[pos] && s[pos] <= '9')
         {
-            digit = s[pos] - '0';
+            digit = static_cast<uint8_t>(s[pos] - '0');
         }
         else if ('a' <= s[pos] && s[pos] <= 'z')
         {
-            digit = s[pos] - 'a' + 10;
+            digit = static_cast<uint8_t>(s[pos] - 'a' + 10);
         }
         else if ('A' <= s[pos] && s[pos] <= 'Z')
         {
-            digit = s[pos] - 'A' + 10;
+            digit = static_cast<uint8_t>(s[pos] - 'A' + 10);
         }
         else
         {
@@ -497,9 +497,9 @@ uint256_t uint256_t::operator*(const uint256_t &rhs) const
     uint128_t products[4][4];
 
     // multiply each component of the values
-    for (int y = 3; y > -1; y--)
+    for (size_t y = 0; y < 4; y++)
     {
-        for (int x = 3; x > -1; x--)
+        for (size_t x = 0; x < 4; x++)
         {
             products[3 - y][x] = top[x] * bottom[y];
         }
@@ -685,7 +685,7 @@ std::vector<uint8_t> uint256_t::export_bits_truncate() const
     size_t i = 0;
     while (i < ret.size() - 1 && ret[i] == 0)
         i++;
-    ret.erase(ret.begin(), ret.begin() + i);
+    ret.erase(ret.begin(), ret.begin() + static_cast<std::ptrdiff_t>(i));
 
     return ret;
 }

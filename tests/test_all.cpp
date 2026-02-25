@@ -1,5 +1,18 @@
 #include "test_harness.h"
+
 #include <map>
+
+#ifdef _MSC_VER
+// C4456: declaration hides previous local — false positive in do{}while(0) macro expansions
+// C4127: conditional expression is constant — triggered by do{}while(0) and template checks
+#pragma warning(disable : 4456 4127)
+#endif
+// -Wshadow false positives from do{}while(0) test macros re-declaring variables
+#if defined(__clang__)
+#pragma clang diagnostic ignored "-Wshadow"
+#elif defined(__GNUC__)
+#pragma GCC diagnostic ignored "-Wshadow"
+#endif
 
 // ============================================================================
 // test_constructor
@@ -28,8 +41,16 @@ void test_constructor()
     // Constructor, base_string
     {
         CHECK_EQ(uint256_t("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16), uint256_max);
-        CHECK_EQ(uint256_t("115792089237316195423570985008687907853269984665640564039457584007913129639935", 10), uint256_max);
-        CHECK_EQ(uint256_t("1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111", 2), uint256_max);
+        CHECK_EQ(
+            uint256_t("115792089237316195423570985008687907853269984665640564039457584007913129639935", 10),
+            uint256_max);
+        CHECK_EQ(
+            uint256_t(
+                "111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111"
+                "111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111"
+                "1111111111111111111111111111111111111111111111111111",
+                2),
+            uint256_max);
         CHECK_EQ(uint256_t("0", 10), 0);
         CHECK_EQ(uint256_t("0123456789abcdef", 16), 0x0123456789abcdefULL);
         CHECK_EQ(uint256_t("755", 8), 0x01ed);
@@ -38,45 +59,55 @@ void test_constructor()
 
     // Constructor, one
     {
-        CHECK_EQ(uint256_t(true).upper(),  false);
-        CHECK_EQ(uint256_t(true).lower(),   true);
+        CHECK_EQ(uint256_t(true).upper(), false);
+        CHECK_EQ(uint256_t(true).lower(), true);
         CHECK_EQ(uint256_t(false).upper(), false);
         CHECK_EQ(uint256_t(false).lower(), false);
-        CHECK_EQ(uint256_t((uint8_t)  0x01ULL).upper(),               0ULL);
-        CHECK_EQ(uint256_t((uint16_t) 0x0123ULL).upper(),             0ULL);
-        CHECK_EQ(uint256_t((uint32_t) 0x01234567ULL).upper(),         0ULL);
-        CHECK_EQ(uint256_t((uint64_t) 0x0123456789abcdefULL).upper(), 0ULL);
-        CHECK_EQ(uint256_t((uint8_t)  0x01ULL).lower(),               (uint8_t)  0x01ULL);
-        CHECK_EQ(uint256_t((uint16_t) 0x0123ULL).lower(),             (uint16_t) 0x0123ULL);
-        CHECK_EQ(uint256_t((uint32_t) 0x01234567ULL).lower(),         (uint32_t) 0x01234567ULL);
-        CHECK_EQ(uint256_t((uint64_t) 0x0123456789abcdefULL).lower(), (uint64_t) 0x0123456789abcdefULL);
+        CHECK_EQ(uint256_t((uint8_t)0x01ULL).upper(), 0ULL);
+        CHECK_EQ(uint256_t((uint16_t)0x0123ULL).upper(), 0ULL);
+        CHECK_EQ(uint256_t((uint32_t)0x01234567ULL).upper(), 0ULL);
+        CHECK_EQ(uint256_t((uint64_t)0x0123456789abcdefULL).upper(), 0ULL);
+        CHECK_EQ(uint256_t((uint8_t)0x01ULL).lower(), (uint8_t)0x01ULL);
+        CHECK_EQ(uint256_t((uint16_t)0x0123ULL).lower(), (uint16_t)0x0123ULL);
+        CHECK_EQ(uint256_t((uint32_t)0x01234567ULL).lower(), (uint32_t)0x01234567ULL);
+        CHECK_EQ(uint256_t((uint64_t)0x0123456789abcdefULL).lower(), (uint64_t)0x0123456789abcdefULL);
     }
 
     // Constructor, two
     {
-        for(uint8_t hi = 0; hi < 2; hi++){
-            for(uint8_t lo = 0; lo < 2; lo++){
+        for (uint8_t hi = 0; hi < 2; hi++)
+        {
+            for (uint8_t lo = 0; lo < 2; lo++)
+            {
                 const uint256_t val(hi, lo);
                 CHECK_EQ(val.upper(), hi);
                 CHECK_EQ(val.lower(), lo);
             }
         }
-        CHECK_EQ(uint256_t((uint8_t)  0x01ULL,               (uint8_t)  0x01ULL).upper(),               (uint8_t)  0x01ULL);
-        CHECK_EQ(uint256_t((uint16_t) 0x0123ULL,             (uint16_t) 0x0123ULL).upper(),             (uint16_t) 0x0123ULL);
-        CHECK_EQ(uint256_t((uint32_t) 0x01234567ULL,         (uint32_t) 0x01234567ULL).upper(),         (uint32_t) 0x01234567ULL);
-        CHECK_EQ(uint256_t((uint64_t) 0x0123456789abcdefULL, (uint64_t) 0x0123456789abcdefULL).upper(), (uint64_t) 0x0123456789abcdefULL);
-        CHECK_EQ(uint256_t((uint8_t)  0x01ULL,               (uint8_t)  0x01ULL).lower(),               (uint8_t)  0x01ULL);
-        CHECK_EQ(uint256_t((uint16_t) 0x0123ULL,             (uint16_t) 0x0123ULL).lower(),             (uint16_t) 0x0123ULL);
-        CHECK_EQ(uint256_t((uint32_t) 0x01234567ULL,         (uint32_t) 0x01234567ULL).lower(),         (uint32_t) 0x01234567ULL);
-        CHECK_EQ(uint256_t((uint64_t) 0x0123456789abcdefULL, (uint64_t) 0x0123456789abcdefULL).lower(), (uint64_t) 0x0123456789abcdefULL);
+        CHECK_EQ(uint256_t((uint8_t)0x01ULL, (uint8_t)0x01ULL).upper(), (uint8_t)0x01ULL);
+        CHECK_EQ(uint256_t((uint16_t)0x0123ULL, (uint16_t)0x0123ULL).upper(), (uint16_t)0x0123ULL);
+        CHECK_EQ(uint256_t((uint32_t)0x01234567ULL, (uint32_t)0x01234567ULL).upper(), (uint32_t)0x01234567ULL);
+        CHECK_EQ(
+            uint256_t((uint64_t)0x0123456789abcdefULL, (uint64_t)0x0123456789abcdefULL).upper(),
+            (uint64_t)0x0123456789abcdefULL);
+        CHECK_EQ(uint256_t((uint8_t)0x01ULL, (uint8_t)0x01ULL).lower(), (uint8_t)0x01ULL);
+        CHECK_EQ(uint256_t((uint16_t)0x0123ULL, (uint16_t)0x0123ULL).lower(), (uint16_t)0x0123ULL);
+        CHECK_EQ(uint256_t((uint32_t)0x01234567ULL, (uint32_t)0x01234567ULL).lower(), (uint32_t)0x01234567ULL);
+        CHECK_EQ(
+            uint256_t((uint64_t)0x0123456789abcdefULL, (uint64_t)0x0123456789abcdefULL).lower(),
+            (uint64_t)0x0123456789abcdefULL);
     }
 
     // Constructor, four
     {
-        for(uint8_t hi_hi = 0; hi_hi < 2; hi_hi++){
-            for(uint8_t hi_lo = 0; hi_lo < 2; hi_lo++){
-                for(uint8_t lo_hi = 0; lo_hi < 2; lo_hi++){
-                    for(uint8_t lo_lo = 0; lo_lo < 2; lo_lo++){
+        for (uint8_t hi_hi = 0; hi_hi < 2; hi_hi++)
+        {
+            for (uint8_t hi_lo = 0; hi_lo < 2; hi_lo++)
+            {
+                for (uint8_t lo_hi = 0; lo_hi < 2; lo_hi++)
+                {
+                    for (uint8_t lo_lo = 0; lo_lo < 2; lo_lo++)
+                    {
                         const uint256_t val(hi_hi, hi_lo, lo_hi, lo_lo);
                         CHECK_EQ(val.upper().upper(), hi_hi);
                         CHECK_EQ(val.upper().lower(), hi_lo);
@@ -94,16 +125,16 @@ void test_constructor()
 // ============================================================================
 void test_assignment()
 {
-    const uint256_t t_1   = true;
-    const uint256_t f_1   = false;
-    const uint256_t u8_1  = 0x01;
+    const uint256_t t_1 = true;
+    const uint256_t f_1 = false;
+    const uint256_t u8_1 = 0x01;
     const uint256_t u16_1 = 0x0123;
     const uint256_t u32_1 = 0x01234567;
     const uint256_t u64_1 = 0x0123456789abcdef;
 
-    uint256_t t_2   = 0;
-    uint256_t f_2   = 0;
-    uint256_t u8_2  = 0;
+    uint256_t t_2 = 0;
+    uint256_t f_2 = 0;
+    uint256_t u8_2 = 0;
     uint256_t u16_2 = 0;
     uint256_t u32_2 = 0;
     uint256_t u64_2 = 0;
@@ -130,12 +161,12 @@ void test_typecast()
 {
     const uint256_t val(0xaaaaaaaaaaaaaaaaULL, 0xaaaaaaaaaaaaaaaaULL);
 
-    CHECK_EQ(static_cast <bool>     (uint256_t(true)),          true);
-    CHECK_EQ(static_cast <bool>     (uint256_t(false)),         false);
-    CHECK_EQ(static_cast <uint8_t>  (val),           (uint8_t)  0xaaULL);
-    CHECK_EQ(static_cast <uint16_t> (val),           (uint16_t) 0xaaaaULL);
-    CHECK_EQ(static_cast <uint32_t> (val),           (uint32_t) 0xaaaaaaaaULL);
-    CHECK_EQ(static_cast <uint64_t> (val),           (uint64_t) 0xaaaaaaaaaaaaaaaaULL);
+    CHECK_EQ(static_cast<bool>(uint256_t(true)), true);
+    CHECK_EQ(static_cast<bool>(uint256_t(false)), false);
+    CHECK_EQ(static_cast<uint8_t>(val), (uint8_t)0xaaULL);
+    CHECK_EQ(static_cast<uint16_t>(val), (uint16_t)0xaaaaULL);
+    CHECK_EQ(static_cast<uint32_t>(val), (uint32_t)0xaaaaaaaaULL);
+    CHECK_EQ(static_cast<uint64_t>(val), (uint64_t)0xaaaaaaaaaaaaaaaaULL);
 }
 
 // ============================================================================
@@ -146,7 +177,8 @@ void test_accessors()
     // Accessor, bits
     {
         uint256_t value = 1;
-        for(uint32_t i = 0; i < 127; i++){
+        for (uint32_t i = 0; i < 127; i++)
+        {
             CHECK_EQ(value.bits(), i + 1);
             value <<= 1;
         }
@@ -156,7 +188,8 @@ void test_accessors()
 
     // Accessor, data
     {
-        const uint256_t value(0xfedcba9876543210ULL, 0x0123456789abcdefULL, 0xfedcba9876543210ULL, 0x0123456789abcdefULL);
+        const uint256_t value(
+            0xfedcba9876543210ULL, 0x0123456789abcdefULL, 0xfedcba9876543210ULL, 0x0123456789abcdefULL);
         CHECK_EQ(value.upper().upper(), 0xfedcba9876543210ULL);
         CHECK_EQ(value.upper().lower(), 0x0123456789abcdefULL);
         CHECK_EQ(value.lower().upper(), 0xfedcba9876543210ULL);
@@ -171,25 +204,25 @@ void test_and()
 {
     // BitWise and
     {
-        uint256_t t  ((bool)     true);
-        uint256_t f  ((bool)     false);
-        uint256_t u8 ((uint8_t)  0xaaULL);
-        uint256_t u16((uint16_t) 0xaaaaULL);
-        uint256_t u32((uint32_t) 0xaaaaaaaaULL);
-        uint256_t u64((uint64_t) 0xaaaaaaaaaaaaaaaaULL);
+        uint256_t t((bool)true);
+        uint256_t f((bool)false);
+        uint256_t u8((uint8_t)0xaaULL);
+        uint256_t u16((uint16_t)0xaaaaULL);
+        uint256_t u32((uint32_t)0xaaaaaaaaULL);
+        uint256_t u64((uint64_t)0xaaaaaaaaaaaaaaaaULL);
 
         const uint256_t val(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL);
 
-        CHECK_EQ(t   &  val, uint256_t(0));
-        CHECK_EQ(f   &  val, uint256_t(0));
-        CHECK_EQ(u8  &  val, uint256_t(0xa0ULL));
-        CHECK_EQ(u16 &  val, uint256_t(0xa0a0ULL));
-        CHECK_EQ(u32 &  val, uint256_t(0xa0a0a0a0ULL));
-        CHECK_EQ(u64 &  val, uint256_t(0xa0a0a0a0a0a0a0a0ULL));
+        CHECK_EQ(t & val, uint256_t(0));
+        CHECK_EQ(f & val, uint256_t(0));
+        CHECK_EQ(u8 & val, uint256_t(0xa0ULL));
+        CHECK_EQ(u16 & val, uint256_t(0xa0a0ULL));
+        CHECK_EQ(u32 & val, uint256_t(0xa0a0a0a0ULL));
+        CHECK_EQ(u64 & val, uint256_t(0xa0a0a0a0a0a0a0a0ULL));
 
-        CHECK_EQ(t   &= val, uint256_t(0x0ULL));
-        CHECK_EQ(f   &= val, uint256_t(0x0ULL));
-        CHECK_EQ(u8  &= val, uint256_t(0xa0ULL));
+        CHECK_EQ(t &= val, uint256_t(0x0ULL));
+        CHECK_EQ(f &= val, uint256_t(0x0ULL));
+        CHECK_EQ(u8 &= val, uint256_t(0xa0ULL));
         CHECK_EQ(u16 &= val, uint256_t(0xa0a0ULL));
         CHECK_EQ(u32 &= val, uint256_t(0xa0a0a0a0ULL));
         CHECK_EQ(u64 &= val, uint256_t(0xa0a0a0a0a0a0a0a0ULL));
@@ -197,28 +230,28 @@ void test_and()
 
     // External and
     {
-        bool     t   = true;
-        bool     f   = false;
-        uint8_t  u8  = 0xaaULL;
+        bool t = true;
+        bool f = false;
+        uint8_t u8 = 0xaaULL;
         uint16_t u16 = 0xaaaaULL;
         uint32_t u32 = 0xaaaaaaaaULL;
         uint64_t u64 = 0xaaaaaaaaaaaaaaaaULL;
 
         const uint256_t val(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL);
 
-        CHECK_EQ(t   &  val, uint256_t(0x0ULL));
-        CHECK_EQ(f   &  val, uint256_t(0x0ULL));
-        CHECK_EQ(u8  &  val, uint256_t(0xa0ULL));
-        CHECK_EQ(u16 &  val, uint256_t(0xa0a0ULL));
-        CHECK_EQ(u32 &  val, uint256_t(0xa0a0a0a0ULL));
-        CHECK_EQ(u64 &  val, uint256_t(0xa0a0a0a0a0a0a0a0ULL));
+        CHECK_EQ(t & val, uint256_t(0x0ULL));
+        CHECK_EQ(f & val, uint256_t(0x0ULL));
+        CHECK_EQ(u8 & val, uint256_t(0xa0ULL));
+        CHECK_EQ(u16 & val, uint256_t(0xa0a0ULL));
+        CHECK_EQ(u32 & val, uint256_t(0xa0a0a0a0ULL));
+        CHECK_EQ(u64 & val, uint256_t(0xa0a0a0a0a0a0a0a0ULL));
 
-        CHECK_EQ(t   &= val, false);
-        CHECK_EQ(f   &= val, false);
-        CHECK_EQ(u8  &= val, (uint8_t)  0xa0ULL);
-        CHECK_EQ(u16 &= val, (uint16_t) 0xa0a0ULL);
-        CHECK_EQ(u32 &= val, (uint32_t) 0xa0a0a0a0ULL);
-        CHECK_EQ(u64 &= val, (uint64_t) 0xa0a0a0a0a0a0a0a0ULL);
+        CHECK_EQ(t &= val, false);
+        CHECK_EQ(f &= val, false);
+        CHECK_EQ(u8 &= val, (uint8_t)0xa0ULL);
+        CHECK_EQ(u16 &= val, (uint16_t)0xa0a0ULL);
+        CHECK_EQ(u32 &= val, (uint32_t)0xa0a0a0a0ULL);
+        CHECK_EQ(u64 &= val, (uint64_t)0xa0a0a0a0a0a0a0a0ULL);
 
         // zero
         CHECK_EQ(uint256_t() & val, 0);
@@ -232,25 +265,25 @@ void test_or()
 {
     // BitWise or
     {
-        uint256_t t  ((bool)     true);
-        uint256_t f  ((bool)     false);
-        uint256_t u8 ((uint8_t)  0xaaULL);
-        uint256_t u16((uint16_t) 0xaaaaULL);
-        uint256_t u32((uint32_t) 0xaaaaaaaaULL);
-        uint256_t u64((uint64_t) 0xaaaaaaaaaaaaaaaaULL);
+        uint256_t t((bool)true);
+        uint256_t f((bool)false);
+        uint256_t u8((uint8_t)0xaaULL);
+        uint256_t u16((uint16_t)0xaaaaULL);
+        uint256_t u32((uint32_t)0xaaaaaaaaULL);
+        uint256_t u64((uint64_t)0xaaaaaaaaaaaaaaaaULL);
 
         const uint256_t val(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL);
 
-        CHECK_EQ(t   |  val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f1ULL));
-        CHECK_EQ(f   |  val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL));
-        CHECK_EQ(u8  |  val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0faULL));
-        CHECK_EQ(u16 |  val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0fafaULL));
-        CHECK_EQ(u32 |  val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0fafafafaULL));
-        CHECK_EQ(u64 |  val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xfafafafafafafafaULL));
+        CHECK_EQ(t | val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f1ULL));
+        CHECK_EQ(f | val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL));
+        CHECK_EQ(u8 | val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0faULL));
+        CHECK_EQ(u16 | val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0fafaULL));
+        CHECK_EQ(u32 | val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0fafafafaULL));
+        CHECK_EQ(u64 | val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xfafafafafafafafaULL));
 
-        CHECK_EQ(t   |= val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f1ULL));
-        CHECK_EQ(f   |= val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL));
-        CHECK_EQ(u8  |= val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0faULL));
+        CHECK_EQ(t |= val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f1ULL));
+        CHECK_EQ(f |= val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL));
+        CHECK_EQ(u8 |= val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0faULL));
         CHECK_EQ(u16 |= val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0fafaULL));
         CHECK_EQ(u32 |= val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0fafafafaULL));
         CHECK_EQ(u64 |= val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xfafafafafafafafaULL));
@@ -261,28 +294,28 @@ void test_or()
 
     // External or
     {
-        bool     t   = true;
-        bool     f   = false;
-        uint8_t  u8  = 0xaa;
+        bool t = true;
+        bool f = false;
+        uint8_t u8 = 0xaa;
         uint16_t u16 = 0xaaaa;
         uint32_t u32 = 0xaaaaaaaaULL;
         uint64_t u64 = 0xaaaaaaaaaaaaaaaaULL;
 
         const uint256_t val(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL);
 
-        CHECK_EQ(t   |  val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f1ULL));
-        CHECK_EQ(f   |  val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL));
-        CHECK_EQ(u8  |  val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0faULL));
-        CHECK_EQ(u16 |  val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0fafaULL));
-        CHECK_EQ(u32 |  val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0fafafafaULL));
-        CHECK_EQ(u64 |  val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xfafafafafafafafaULL));
+        CHECK_EQ(t | val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f1ULL));
+        CHECK_EQ(f | val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL));
+        CHECK_EQ(u8 | val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0faULL));
+        CHECK_EQ(u16 | val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0fafaULL));
+        CHECK_EQ(u32 | val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0fafafafaULL));
+        CHECK_EQ(u64 | val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xfafafafafafafafaULL));
 
-        CHECK_EQ(t   |= val, true);
-        CHECK_EQ(f   |= val, true);
-        CHECK_EQ(u8  |= val, (uint8_t)  0xfaULL);
-        CHECK_EQ(u16 |= val, (uint16_t) 0xfafaULL);
-        CHECK_EQ(u32 |= val, (uint32_t) 0xfafafafaULL);
-        CHECK_EQ(u64 |= val, (uint64_t) 0xfafafafafafafafaULL);
+        CHECK_EQ(t |= val, true);
+        CHECK_EQ(f |= val, true);
+        CHECK_EQ(u8 |= val, (uint8_t)0xfaULL);
+        CHECK_EQ(u16 |= val, (uint16_t)0xfafaULL);
+        CHECK_EQ(u32 |= val, (uint32_t)0xfafafafaULL);
+        CHECK_EQ(u64 |= val, (uint64_t)0xfafafafafafafafaULL);
 
         // zero
         CHECK_EQ(uint256_t() | val, val);
@@ -296,25 +329,25 @@ void test_xor()
 {
     // BitWise xor
     {
-        uint256_t t  ((bool)     true);
-        uint256_t f  ((bool)     false);
-        uint256_t u8 ((uint8_t)  0xaaULL);
-        uint256_t u16((uint16_t) 0xaaaaULL);
-        uint256_t u32((uint32_t) 0xaaaaaaaaULL);
-        uint256_t u64((uint64_t) 0xaaaaaaaaaaaaaaaa);
+        uint256_t t((bool)true);
+        uint256_t f((bool)false);
+        uint256_t u8((uint8_t)0xaaULL);
+        uint256_t u16((uint16_t)0xaaaaULL);
+        uint256_t u32((uint32_t)0xaaaaaaaaULL);
+        uint256_t u64((uint64_t)0xaaaaaaaaaaaaaaaa);
 
         const uint256_t val(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL);
 
-        CHECK_EQ(t   ^  val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f1ULL));
-        CHECK_EQ(f   ^  val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL));
-        CHECK_EQ(u8  ^  val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f05aULL));
-        CHECK_EQ(u16 ^  val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f05a5aULL));
-        CHECK_EQ(u32 ^  val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f05a5a5a5aULL));
-        CHECK_EQ(u64 ^  val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0x5a5a5a5a5a5a5a5aULL));
+        CHECK_EQ(t ^ val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f1ULL));
+        CHECK_EQ(f ^ val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL));
+        CHECK_EQ(u8 ^ val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f05aULL));
+        CHECK_EQ(u16 ^ val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f05a5aULL));
+        CHECK_EQ(u32 ^ val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f05a5a5a5aULL));
+        CHECK_EQ(u64 ^ val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0x5a5a5a5a5a5a5a5aULL));
 
-        CHECK_EQ(t   ^= val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f1ULL));
-        CHECK_EQ(f   ^= val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL));
-        CHECK_EQ(u8  ^= val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f05aULL));
+        CHECK_EQ(t ^= val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f1ULL));
+        CHECK_EQ(f ^= val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL));
+        CHECK_EQ(u8 ^= val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f05aULL));
         CHECK_EQ(u16 ^= val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f05a5aULL));
         CHECK_EQ(u32 ^= val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f05a5a5a5aULL));
         CHECK_EQ(u64 ^= val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0x5a5a5a5a5a5a5a5aULL));
@@ -325,28 +358,28 @@ void test_xor()
 
     // External xor
     {
-        bool     t   = true;
-        bool     f   = false;
-        uint8_t  u8  = 0xaaULL;
+        bool t = true;
+        bool f = false;
+        uint8_t u8 = 0xaaULL;
         uint16_t u16 = 0xaaaaULL;
         uint32_t u32 = 0xaaaaaaaaULL;
         uint64_t u64 = 0xaaaaaaaaaaaaaaaaULL;
 
         const uint256_t val(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL);
 
-        CHECK_EQ(t   ^  val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f1ULL));
-        CHECK_EQ(f   ^  val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL));
-        CHECK_EQ(u8  ^  val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f05aULL));
-        CHECK_EQ(u16 ^  val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f05a5aULL));
-        CHECK_EQ(u32 ^  val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f05a5a5a5aULL));
-        CHECK_EQ(u64 ^  val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0x5a5a5a5a5a5a5a5aULL));
+        CHECK_EQ(t ^ val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f1ULL));
+        CHECK_EQ(f ^ val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL));
+        CHECK_EQ(u8 ^ val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f05aULL));
+        CHECK_EQ(u16 ^ val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f05a5aULL));
+        CHECK_EQ(u32 ^ val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f05a5a5a5aULL));
+        CHECK_EQ(u64 ^ val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0x5a5a5a5a5a5a5a5aULL));
 
-        CHECK_EQ(t   ^= val, true);
-        CHECK_EQ(f   ^= val, true);
-        CHECK_EQ(u8  ^= val, (uint8_t)  0x5aULL);
-        CHECK_EQ(u16 ^= val, (uint16_t) 0x5a5aULL);
-        CHECK_EQ(u32 ^= val, (uint32_t) 0x5a5a5a5aULL);
-        CHECK_EQ(u64 ^= val, (uint64_t) 0x5a5a5a5a5a5a5a5aULL);
+        CHECK_EQ(t ^= val, true);
+        CHECK_EQ(f ^= val, true);
+        CHECK_EQ(u8 ^= val, (uint8_t)0x5aULL);
+        CHECK_EQ(u16 ^= val, (uint16_t)0x5a5aULL);
+        CHECK_EQ(u32 ^= val, (uint32_t)0x5a5a5a5aULL);
+        CHECK_EQ(u64 ^= val, (uint64_t)0x5a5a5a5a5a5a5a5aULL);
 
         // zero
         CHECK_EQ(uint256_t() ^ val, val);
@@ -358,19 +391,24 @@ void test_xor()
 // ============================================================================
 void test_invert()
 {
-    for(uint8_t hi_hi = 0; hi_hi < 2; hi_hi++){
-        for(uint8_t hi_lo = 0; hi_lo < 2; hi_lo++){
-            for(uint8_t lo_hi = 0; lo_hi < 2; lo_hi++){
-                for(uint8_t lo_lo = 0; lo_lo < 2; lo_lo++){
-                    const uint256_t val = ~uint256_t(hi_hi?0xffffffffffffffffULL:0x0000000000000000ULL,
-                                                     hi_lo?0xffffffffffffffffULL:0x0000000000000000ULL,
-                                                     lo_hi?0xffffffffffffffffULL:0x0000000000000000ULL,
-                                                     lo_lo?0xffffffffffffffffULL:0x0000000000000000ULL);
+    for (uint8_t hi_hi = 0; hi_hi < 2; hi_hi++)
+    {
+        for (uint8_t hi_lo = 0; hi_lo < 2; hi_lo++)
+        {
+            for (uint8_t lo_hi = 0; lo_hi < 2; lo_hi++)
+            {
+                for (uint8_t lo_lo = 0; lo_lo < 2; lo_lo++)
+                {
+                    const uint256_t val = ~uint256_t(
+                        hi_hi ? 0xffffffffffffffffULL : 0x0000000000000000ULL,
+                        hi_lo ? 0xffffffffffffffffULL : 0x0000000000000000ULL,
+                        lo_hi ? 0xffffffffffffffffULL : 0x0000000000000000ULL,
+                        lo_lo ? 0xffffffffffffffffULL : 0x0000000000000000ULL);
 
-                    CHECK_EQ(val.upper().upper(), hi_hi?0x0000000000000000ULL:0xffffffffffffffffULL);
-                    CHECK_EQ(val.upper().lower(), hi_lo?0x0000000000000000ULL:0xffffffffffffffffULL);
-                    CHECK_EQ(val.lower().upper(), lo_hi?0x0000000000000000ULL:0xffffffffffffffffULL);
-                    CHECK_EQ(val.lower().lower(), lo_lo?0x0000000000000000ULL:0xffffffffffffffffULL);
+                    CHECK_EQ(val.upper().upper(), hi_hi ? 0x0000000000000000ULL : 0xffffffffffffffffULL);
+                    CHECK_EQ(val.upper().lower(), hi_lo ? 0x0000000000000000ULL : 0xffffffffffffffffULL);
+                    CHECK_EQ(val.lower().upper(), lo_hi ? 0x0000000000000000ULL : 0xffffffffffffffffULL);
+                    CHECK_EQ(val.lower().lower(), lo_lo ? 0x0000000000000000ULL : 0xffffffffffffffffULL);
                 }
             }
         }
@@ -387,81 +425,89 @@ void test_leftshift()
         // operator<<
         uint256_t val(0x1);
         uint64_t exp_val = 1;
-        for(uint8_t i = 0; i < 64; i++){
+        for (uint8_t i = 0; i < 64; i++)
+        {
             CHECK_EQ(val << i, exp_val << i);
         }
 
         uint256_t zero(0);
-        for(uint8_t i = 0; i < 64; i++){
+        for (uint8_t i = 0; i < 64; i++)
+        {
             CHECK_EQ(zero << i, 0);
         }
 
         // operator<<=
-        for(uint8_t i = 0; i < 63; i++){
-            CHECK_EQ(val  <<= 1, exp_val <<= 1);
+        for (uint8_t i = 0; i < 63; i++)
+        {
+            CHECK_EQ(val <<= 1, exp_val <<= 1);
         }
 
-        for(uint8_t i = 0; i < 63; i++){
+        for (uint8_t i = 0; i < 63; i++)
+        {
             CHECK_EQ(zero <<= 1, 0);
         }
     }
 
     // External shift_left
     {
-        bool      t    = true;
-        bool      f    = false;
-        uint8_t   u8   = 0xffULL;
-        uint16_t  u16  = 0xffffULL;
-        uint32_t  u32  = 0xffffffffULL;
-        uint64_t  u64  = 0xffffffffffffffffULL;
-        uint128_t u128  (0xffffffffffffffffULL, 0xffffffffffffffffULL);
+        bool t = true;
+        bool f = false;
+        uint8_t u8 = 0xffULL;
+        uint16_t u16 = 0xffffULL;
+        uint32_t u32 = 0xffffffffULL;
+        uint64_t u64 = 0xffffffffffffffffULL;
+        uint128_t u128(0xffffffffffffffffULL, 0xffffffffffffffffULL);
 
         const uint256_t zero(0);
         const uint256_t one(1);
 
-        CHECK_EQ(t    << zero, t);
-        CHECK_EQ(f    << zero, f);
-        CHECK_EQ(u8   << zero, u8);
-        CHECK_EQ(u16  << zero, u16);
-        CHECK_EQ(u32  << zero, u32);
-        CHECK_EQ(u64  << zero, u64);
+        CHECK_EQ(t << zero, t);
+        CHECK_EQ(f << zero, f);
+        CHECK_EQ(u8 << zero, u8);
+        CHECK_EQ(u16 << zero, u16);
+        CHECK_EQ(u32 << zero, u32);
+        CHECK_EQ(u64 << zero, u64);
         CHECK_EQ(u128 << zero, u128);
 
-        CHECK_EQ(t    <<= zero, t);
-        CHECK_EQ(f    <<= zero, f);
-        CHECK_EQ(u8   <<= zero, u8);
-        CHECK_EQ(u16  <<= zero, u16);
-        CHECK_EQ(u32  <<= zero, u32);
-        CHECK_EQ(u64  <<= zero, u64);
+        CHECK_EQ(t <<= zero, t);
+        CHECK_EQ(f <<= zero, f);
+        CHECK_EQ(u8 <<= zero, u8);
+        CHECK_EQ(u16 <<= zero, u16);
+        CHECK_EQ(u32 <<= zero, u32);
+        CHECK_EQ(u64 <<= zero, u64);
         CHECK_EQ(u128 <<= zero, u128);
 
-        CHECK_EQ(t    << one, uint256_t(t)    << 1);
-        CHECK_EQ(f    << one, uint256_t(f)    << 1);
-        CHECK_EQ(u8   << one, uint256_t(u8)   << 1);
-        CHECK_EQ(u16  << one, uint256_t(u16)  << 1);
-        CHECK_EQ(u32  << one, uint256_t(u32)  << 1);
-        CHECK_EQ(u64  << one, uint256_t(u64)  << 1);
+        CHECK_EQ(t << one, uint256_t(t) << 1);
+        CHECK_EQ(f << one, uint256_t(f) << 1);
+        CHECK_EQ(u8 << one, uint256_t(u8) << 1);
+        CHECK_EQ(u16 << one, uint256_t(u16) << 1);
+        CHECK_EQ(u32 << one, uint256_t(u32) << 1);
+        CHECK_EQ(u64 << one, uint256_t(u64) << 1);
         CHECK_EQ(u128 << one, uint256_t(u128) << 1);
 
-        CHECK_EQ(t    <<= one, true);
-        CHECK_EQ(f    <<= one, false);
-        CHECK_EQ(u8   <<= one, (uint8_t)  0xfeULL);
-        CHECK_EQ(u16  <<= one, (uint16_t) 0xfffeULL);
-        CHECK_EQ(u32  <<= one, (uint32_t) 0xfffffffeULL);
-        CHECK_EQ(u64  <<= one, (uint64_t) 0xfffffffffffffffeULL);
-        CHECK_EQ(u128 <<= one, uint128_t (0xffffffffffffffffULL, 0xfffffffffffffffeULL));
+        CHECK_EQ(t <<= one, true);
+        CHECK_EQ(f <<= one, false);
+        CHECK_EQ(u8 <<= one, (uint8_t)0xfeULL);
+        CHECK_EQ(u16 <<= one, (uint16_t)0xfffeULL);
+        CHECK_EQ(u32 <<= one, (uint32_t)0xfffffffeULL);
+        CHECK_EQ(u64 <<= one, (uint64_t)0xfffffffffffffffeULL);
+        CHECK_EQ(u128 <<= one, uint128_t(0xffffffffffffffffULL, 0xfffffffffffffffeULL));
 
-        CHECK_EQ(u8   << uint256_t(7),   uint256_t(0x7f00ULL));
-        CHECK_EQ(u16  << uint256_t(15),  uint256_t(0x7fff0000ULL));
-        CHECK_EQ(u32  << uint256_t(31),  uint256_t(0x7fffffff00000000ULL));
-        CHECK_EQ(u64  << uint256_t(63),  uint256_t(0x0000000000000000ULL, 0x0000000000000000ULL, 0x7fffffffffffffffULL, 0x0000000000000000ULL));
-        CHECK_EQ(u128 << uint256_t(127), uint256_t(0x7fffffffffffffffULL, 0xffffffffffffffffULL, 0x0000000000000000ULL, 0x0000000000000000ULL));
+        CHECK_EQ(u8 << uint256_t(7), uint256_t(0x7f00ULL));
+        CHECK_EQ(u16 << uint256_t(15), uint256_t(0x7fff0000ULL));
+        CHECK_EQ(u32 << uint256_t(31), uint256_t(0x7fffffff00000000ULL));
+        CHECK_EQ(
+            u64 << uint256_t(63),
+            uint256_t(0x0000000000000000ULL, 0x0000000000000000ULL, 0x7fffffffffffffffULL, 0x0000000000000000ULL));
+        CHECK_EQ(
+            u128 << uint256_t(127),
+            uint256_t(0x7fffffffffffffffULL, 0xffffffffffffffffULL, 0x0000000000000000ULL, 0x0000000000000000ULL));
 
-        CHECK_EQ(u8   <<= uint256_t(7),   (uint8_t)   0);
-        CHECK_EQ(u16  <<= uint256_t(15),  (uint16_t)  0);
-        CHECK_EQ(u32  <<= uint256_t(31),  (uint32_t)  0);
-        CHECK_EQ(u64  <<= uint256_t(63),  (uint64_t)  0);
-        CHECK_EQ(u128 <<= uint256_t(127), (uint128_t) 0);
+        CHECK_EQ(u8 <<= uint256_t(7), (uint8_t)0);
+        CHECK_EQ(u16 <<= uint256_t(15), (uint16_t)0);
+        CHECK_EQ(u32 <<= uint256_t(31), (uint32_t)0);
+        CHECK_EQ(u64 <<= uint256_t(63), (uint64_t)0);
+        CHECK_EQ(u128 <<= uint256_t(127), (uint128_t)0);
     }
 }
 
@@ -475,30 +521,34 @@ void test_rightshift()
         // operator>>
         uint256_t val(0xffffffffffffffffULL);
         uint64_t exp = 0xffffffffffffffffULL;
-        for(uint8_t i = 0; i < 64; i++){
+        for (uint8_t i = 0; i < 64; i++)
+        {
             CHECK_EQ(val >> i, exp >> i);
         }
 
         uint256_t zero(0);
-        for(uint8_t i = 0; i < 64; i++){
+        for (uint8_t i = 0; i < 64; i++)
+        {
             CHECK_EQ(zero >> i, 0);
         }
 
         // operator>>=
-        for(uint8_t i = 0; i < 64; i++){
+        for (uint8_t i = 0; i < 64; i++)
+        {
             CHECK_EQ(val >>= 1, exp >>= 1);
         }
 
-        for(uint8_t i = 0; i < 64; i++){
+        for (uint8_t i = 0; i < 64; i++)
+        {
             CHECK_EQ(zero >>= 1, 0);
         }
     }
 
     // External shift_right
     {
-        bool     t   = true;
-        bool     f   = false;
-        uint8_t  u8  = 0xffULL;
+        bool t = true;
+        bool f = false;
+        uint8_t u8 = 0xffULL;
         uint16_t u16 = 0xffffULL;
         uint32_t u32 = 0xffffffffULL;
         uint64_t u64 = 0xffffffffffffffffULL;
@@ -506,43 +556,43 @@ void test_rightshift()
         const uint256_t zero(0);
         const uint256_t one(1);
 
-        CHECK_EQ(t   >> zero, one);
-        CHECK_EQ(f   >> zero, zero);
-        CHECK_EQ(u8  >> zero, u8);
+        CHECK_EQ(t >> zero, one);
+        CHECK_EQ(f >> zero, zero);
+        CHECK_EQ(u8 >> zero, u8);
         CHECK_EQ(u16 >> zero, u16);
         CHECK_EQ(u32 >> zero, u32);
         CHECK_EQ(u64 >> zero, u64);
 
-        CHECK_EQ(t   >>= zero, t);
-        CHECK_EQ(f   >>= zero, f);
-        CHECK_EQ(u8  >>= zero, u8);
+        CHECK_EQ(t >>= zero, t);
+        CHECK_EQ(f >>= zero, f);
+        CHECK_EQ(u8 >>= zero, u8);
         CHECK_EQ(u16 >>= zero, u16);
         CHECK_EQ(u32 >>= zero, u32);
         CHECK_EQ(u64 >>= zero, u64);
 
-        CHECK_EQ(t   >> one, uint256_t(t)   >> 1);
-        CHECK_EQ(f   >> one, uint256_t(f)   >> 1);
-        CHECK_EQ(u8  >> one, uint256_t(u8)  >> 1);
+        CHECK_EQ(t >> one, uint256_t(t) >> 1);
+        CHECK_EQ(f >> one, uint256_t(f) >> 1);
+        CHECK_EQ(u8 >> one, uint256_t(u8) >> 1);
         CHECK_EQ(u16 >> one, uint256_t(u16) >> 1);
         CHECK_EQ(u32 >> one, uint256_t(u32) >> 1);
         CHECK_EQ(u64 >> one, uint256_t(u64) >> 1);
 
-        CHECK_EQ(t   >>= one, false);
-        CHECK_EQ(f   >>= one, false);
-        CHECK_EQ(u8  >>= one, (uint8_t)  0x7fULL);
-        CHECK_EQ(u16 >>= one, (uint16_t) 0x7fffULL);
-        CHECK_EQ(u32 >>= one, (uint32_t) 0x7fffffffULL);
-        CHECK_EQ(u64 >>= one, (uint64_t) 0x7fffffffffffffffULL);
+        CHECK_EQ(t >>= one, false);
+        CHECK_EQ(f >>= one, false);
+        CHECK_EQ(u8 >>= one, (uint8_t)0x7fULL);
+        CHECK_EQ(u16 >>= one, (uint16_t)0x7fffULL);
+        CHECK_EQ(u32 >>= one, (uint32_t)0x7fffffffULL);
+        CHECK_EQ(u64 >>= one, (uint64_t)0x7fffffffffffffffULL);
 
-        CHECK_EQ(u8  >> uint256_t(7),  zero);
+        CHECK_EQ(u8 >> uint256_t(7), zero);
         CHECK_EQ(u16 >> uint256_t(15), zero);
         CHECK_EQ(u32 >> uint256_t(31), zero);
         CHECK_EQ(u64 >> uint256_t(63), zero);
 
-        CHECK_EQ(u8  >>= uint256_t(7),  (uint8_t)  0);
-        CHECK_EQ(u16 >>= uint256_t(15), (uint16_t) 0);
-        CHECK_EQ(u32 >>= uint256_t(31), (uint32_t) 0);
-        CHECK_EQ(u64 >>= uint256_t(63), (uint64_t) 0);
+        CHECK_EQ(u8 >>= uint256_t(7), (uint8_t)0);
+        CHECK_EQ(u16 >>= uint256_t(15), (uint16_t)0);
+        CHECK_EQ(u32 >>= uint256_t(31), (uint32_t)0);
+        CHECK_EQ(u64 >>= uint256_t(63), (uint64_t)0);
     }
 }
 
@@ -578,56 +628,54 @@ void test_logical()
 // ============================================================================
 // test_gt
 // ============================================================================
-#define unsigned_compare_gt(Z)                                         \
-do                                                                     \
-{                                                                      \
-    static_assert(std::is_unsigned <Z>::value, "Type must be signed"); \
-                                                                       \
-    const Z small = std::numeric_limits <Z>::min();                    \
-    const Z big   = std::numeric_limits <Z>::max();                    \
-                                                                       \
-    const uint256_t int_small(small);                                  \
-    const uint256_t int_big(big);                                      \
-                                                                       \
-    CHECK_EQ(small > int_small, false);                                \
-    CHECK_EQ(small > int_big,   false);                                \
-                                                                       \
-    CHECK_EQ(big > int_small,   true);                                 \
-    CHECK_EQ(big > int_big,     false);                                \
-}                                                                      \
-while (0)
+#define unsigned_compare_gt(Z)                                            \
+    do                                                                    \
+    {                                                                     \
+        static_assert(std::is_unsigned<Z>::value, "Type must be signed"); \
+                                                                          \
+        const Z small = std::numeric_limits<Z>::min();                    \
+        const Z big = std::numeric_limits<Z>::max();                      \
+                                                                          \
+        const uint256_t int_small(small);                                 \
+        const uint256_t int_big(big);                                     \
+                                                                          \
+        CHECK_EQ(small > int_small, false);                               \
+        CHECK_EQ(small > int_big, false);                                 \
+                                                                          \
+        CHECK_EQ(big > int_small, true);                                  \
+        CHECK_EQ(big > int_big, false);                                   \
+    } while (0)
 
-#define signed_compare_gt(Z)                                           \
-do                                                                     \
-{                                                                      \
-    static_assert(std::is_signed <Z>::value, "Type must be signed");   \
-                                                                       \
-    const Z small =  1;                                                \
-    const Z big = std::numeric_limits <Z>::max();                      \
-                                                                       \
-    const uint256_t int_small(small);                                  \
-    const uint256_t int_big(big);                                      \
-                                                                       \
-    CHECK_EQ(small > int_small, false);                                \
-    CHECK_EQ(small > int_big,   false);                                \
-                                                                       \
-    CHECK_EQ(big > int_small,   true);                                 \
-    CHECK_EQ(big > int_big,     false);                                \
-}                                                                      \
-while (0)
+#define signed_compare_gt(Z)                                            \
+    do                                                                  \
+    {                                                                   \
+        static_assert(std::is_signed<Z>::value, "Type must be signed"); \
+                                                                        \
+        const Z small = 1;                                              \
+        const Z big = std::numeric_limits<Z>::max();                    \
+                                                                        \
+        const uint256_t int_small(small);                               \
+        const uint256_t int_big(big);                                   \
+                                                                        \
+        CHECK_EQ(small > int_small, false);                             \
+        CHECK_EQ(small > int_big, false);                               \
+                                                                        \
+        CHECK_EQ(big > int_small, true);                                \
+        CHECK_EQ(big > int_big, false);                                 \
+    } while (0)
 
 void test_gt()
 {
     // Comparison greater_than
     {
-        const uint256_t big  (0xffffffffffffffffULL, 0xffffffffffffffffULL);
+        const uint256_t big(0xffffffffffffffffULL, 0xffffffffffffffffULL);
         const uint256_t small(0x0000000000000000ULL, 0x0000000000000000ULL);
 
-        CHECK_EQ(small > small,     false);
-        CHECK_EQ(small > big,       false);
+        CHECK_EQ(small > small, false);
+        CHECK_EQ(small > big, false);
 
-        CHECK_EQ(big > small,        true);
-        CHECK_EQ(big > big,         false);
+        CHECK_EQ(big > small, true);
+        CHECK_EQ(big > big, false);
     }
 
     // External greater_than
@@ -650,56 +698,54 @@ void test_gt()
 // ============================================================================
 // test_gte
 // ============================================================================
-#define unsigned_compare_gte(Z)                                        \
-do                                                                     \
-{                                                                      \
-    static_assert(std::is_unsigned <Z>::value, "Type must be signed"); \
-                                                                       \
-    const Z small = std::numeric_limits <Z>::min();                    \
-    const Z big   = std::numeric_limits <Z>::max();                    \
-                                                                       \
-    const uint256_t int_small(small);                                  \
-    const uint256_t int_big(big);                                      \
-                                                                       \
-    CHECK_EQ(small >= int_small, true);                                \
-    CHECK_EQ(small >= int_big,   false);                               \
-                                                                       \
-    CHECK_EQ(big >= int_small,   true);                                \
-    CHECK_EQ(big >= int_big,     true);                                \
-}                                                                      \
-while (0)
+#define unsigned_compare_gte(Z)                                           \
+    do                                                                    \
+    {                                                                     \
+        static_assert(std::is_unsigned<Z>::value, "Type must be signed"); \
+                                                                          \
+        const Z small = std::numeric_limits<Z>::min();                    \
+        const Z big = std::numeric_limits<Z>::max();                      \
+                                                                          \
+        const uint256_t int_small(small);                                 \
+        const uint256_t int_big(big);                                     \
+                                                                          \
+        CHECK_EQ(small >= int_small, true);                               \
+        CHECK_EQ(small >= int_big, false);                                \
+                                                                          \
+        CHECK_EQ(big >= int_small, true);                                 \
+        CHECK_EQ(big >= int_big, true);                                   \
+    } while (0)
 
-#define signed_compare_gte(Z)                                          \
-do                                                                     \
-{                                                                      \
-    static_assert(std::is_signed <Z>::value, "Type must be signed");   \
-                                                                       \
-    const Z small =  1;                                                \
-    const Z big = std::numeric_limits <Z>::max();                      \
-                                                                       \
-    const uint256_t int_small(small);                                  \
-    const uint256_t int_big(big);                                      \
-                                                                       \
-    CHECK_EQ(small >= int_small, true) ;                               \
-    CHECK_EQ(small >= int_big,   false);                               \
-                                                                       \
-    CHECK_EQ(big >= int_small,   true);                                \
-    CHECK_EQ(big >= int_big,     true);                                \
-}                                                                      \
-while (0)
+#define signed_compare_gte(Z)                                           \
+    do                                                                  \
+    {                                                                   \
+        static_assert(std::is_signed<Z>::value, "Type must be signed"); \
+                                                                        \
+        const Z small = 1;                                              \
+        const Z big = std::numeric_limits<Z>::max();                    \
+                                                                        \
+        const uint256_t int_small(small);                               \
+        const uint256_t int_big(big);                                   \
+                                                                        \
+        CHECK_EQ(small >= int_small, true);                             \
+        CHECK_EQ(small >= int_big, false);                              \
+                                                                        \
+        CHECK_EQ(big >= int_small, true);                               \
+        CHECK_EQ(big >= int_big, true);                                 \
+    } while (0)
 
 void test_gte()
 {
     // Comparison greater_than_or_equals
     {
-        const uint256_t big  (0xffffffffffffffffULL, 0xffffffffffffffffULL);
+        const uint256_t big(0xffffffffffffffffULL, 0xffffffffffffffffULL);
         const uint256_t small(0x0000000000000000ULL, 0x0000000000000000ULL);
 
-        CHECK_EQ(small >= small,  true);
-        CHECK_EQ(small >= big,   false);
+        CHECK_EQ(small >= small, true);
+        CHECK_EQ(small >= big, false);
 
-        CHECK_EQ(big >= small,    true);
-        CHECK_EQ(big >= big,      true);
+        CHECK_EQ(big >= small, true);
+        CHECK_EQ(big >= big, true);
     }
 
     // External greater_than_or_equals
@@ -723,55 +769,53 @@ void test_gte()
 // test_lt
 // ============================================================================
 #define unsigned_compare_lt(Z)                                            \
-do                                                                        \
-{                                                                         \
-    static_assert(std::is_unsigned <Z>::value, "Type must be signed");    \
+    do                                                                    \
+    {                                                                     \
+        static_assert(std::is_unsigned<Z>::value, "Type must be signed"); \
                                                                           \
-    const Z small = std::numeric_limits <Z>::min();                       \
-    const Z big   = std::numeric_limits <Z>::max();                       \
+        const Z small = std::numeric_limits<Z>::min();                    \
+        const Z big = std::numeric_limits<Z>::max();                      \
                                                                           \
-    const uint256_t int_small(small);                                     \
-    const uint256_t int_big(big);                                         \
+        const uint256_t int_small(small);                                 \
+        const uint256_t int_big(big);                                     \
                                                                           \
-    CHECK_EQ(small < int_small, false);                                   \
-    CHECK_EQ(small < int_big,   true);                                    \
+        CHECK_EQ(small < int_small, false);                               \
+        CHECK_EQ(small < int_big, true);                                  \
                                                                           \
-    CHECK_EQ(big < int_small,   false);                                   \
-    CHECK_EQ(big < int_big,     false);                                   \
-}                                                                         \
-while (0)
+        CHECK_EQ(big < int_small, false);                                 \
+        CHECK_EQ(big < int_big, false);                                   \
+    } while (0)
 
-#define signed_compare_lt(Z)                                              \
-do                                                                        \
-{                                                                         \
-    static_assert(std::is_signed <Z>::value, "Type must be signed");      \
-                                                                          \
-    const Z small =  1;                                                   \
-    const Z big = std::numeric_limits <Z>::max();                         \
-                                                                          \
-    const uint256_t int_small(small);                                     \
-    const uint256_t int_big(big);                                         \
-                                                                          \
-    CHECK_EQ(small < int_small, false);                                   \
-    CHECK_EQ(small < int_big,   true);                                    \
-                                                                          \
-    CHECK_EQ(big < int_small,   false);                                   \
-    CHECK_EQ(big < int_big,     false);                                   \
-}                                                                         \
-while (0)
+#define signed_compare_lt(Z)                                            \
+    do                                                                  \
+    {                                                                   \
+        static_assert(std::is_signed<Z>::value, "Type must be signed"); \
+                                                                        \
+        const Z small = 1;                                              \
+        const Z big = std::numeric_limits<Z>::max();                    \
+                                                                        \
+        const uint256_t int_small(small);                               \
+        const uint256_t int_big(big);                                   \
+                                                                        \
+        CHECK_EQ(small < int_small, false);                             \
+        CHECK_EQ(small < int_big, true);                                \
+                                                                        \
+        CHECK_EQ(big < int_small, false);                               \
+        CHECK_EQ(big < int_big, false);                                 \
+    } while (0)
 
 void test_lt()
 {
     // Comparison less_than
     {
-        const uint256_t big  (0xffffffffffffffffULL, 0xffffffffffffffffULL);
+        const uint256_t big(0xffffffffffffffffULL, 0xffffffffffffffffULL);
         const uint256_t small(0x0000000000000000ULL, 0x0000000000000000ULL);
 
         CHECK_EQ(small < small, false);
-        CHECK_EQ(small < big,    true);
+        CHECK_EQ(small < big, true);
 
-        CHECK_EQ(big < small,   false);
-        CHECK_EQ(big < big,     false);
+        CHECK_EQ(big < small, false);
+        CHECK_EQ(big < big, false);
     }
 
     // External less_than
@@ -795,54 +839,52 @@ void test_lt()
 // test_lte
 // ============================================================================
 #define unsigned_compare_lte(Z)                                           \
-do                                                                        \
-{                                                                         \
-    static_assert(std::is_unsigned <Z>::value, "Type must be signed");    \
+    do                                                                    \
+    {                                                                     \
+        static_assert(std::is_unsigned<Z>::value, "Type must be signed"); \
                                                                           \
-    const Z small = std::numeric_limits <Z>::min();                       \
-    const Z big   = std::numeric_limits <Z>::max();                       \
+        const Z small = std::numeric_limits<Z>::min();                    \
+        const Z big = std::numeric_limits<Z>::max();                      \
                                                                           \
-    const uint256_t int_small(small);                                     \
-    const uint256_t int_big(big);                                         \
+        const uint256_t int_small(small);                                 \
+        const uint256_t int_big(big);                                     \
                                                                           \
-    CHECK_EQ(small <= int_small, true);                                   \
-    CHECK_EQ(small <= int_big,   true);                                   \
+        CHECK_EQ(small <= int_small, true);                               \
+        CHECK_EQ(small <= int_big, true);                                 \
                                                                           \
-    CHECK_EQ(big <= int_small,   false);                                  \
-    CHECK_EQ(big <= int_big,     true);                                   \
-}                                                                         \
-while (0)
+        CHECK_EQ(big <= int_small, false);                                \
+        CHECK_EQ(big <= int_big, true);                                   \
+    } while (0)
 
-#define signed_compare_lte(Z)                                             \
-do                                                                        \
-{                                                                         \
-    static_assert(std::is_signed <Z>::value, "Type must be signed");      \
-                                                                          \
-    const Z small =  1;                                                   \
-    const Z big = std::numeric_limits <Z>::max();                         \
-                                                                          \
-    const uint256_t int_small(small);                                     \
-    const uint256_t int_big(big);                                         \
-                                                                          \
-    CHECK_EQ(small <= int_small, true);                                   \
-    CHECK_EQ(small <= int_big,   true);                                   \
-                                                                          \
-    CHECK_EQ(big <= int_small,   false);                                  \
-    CHECK_EQ(big <= int_big,     true);                                   \
-}                                                                         \
-while (0)
+#define signed_compare_lte(Z)                                           \
+    do                                                                  \
+    {                                                                   \
+        static_assert(std::is_signed<Z>::value, "Type must be signed"); \
+                                                                        \
+        const Z small = 1;                                              \
+        const Z big = std::numeric_limits<Z>::max();                    \
+                                                                        \
+        const uint256_t int_small(small);                               \
+        const uint256_t int_big(big);                                   \
+                                                                        \
+        CHECK_EQ(small <= int_small, true);                             \
+        CHECK_EQ(small <= int_big, true);                               \
+                                                                        \
+        CHECK_EQ(big <= int_small, false);                              \
+        CHECK_EQ(big <= int_big, true);                                 \
+    } while (0)
 
 void test_lte()
 {
     // Comparison: less_than_or_equals
-    const uint256_t big  (0xffffffffffffffffULL, 0xffffffffffffffffULL);
+    const uint256_t big(0xffffffffffffffffULL, 0xffffffffffffffffULL);
     const uint256_t small(0x0000000000000000ULL, 0x0000000000000000ULL);
 
-    CHECK_EQ(small <= small,  true);
-    CHECK_EQ(small <= big,    true);
+    CHECK_EQ(small <= small, true);
+    CHECK_EQ(small <= big, true);
 
-    CHECK_EQ(big <= small,   false);
-    CHECK_EQ(big <= big,      true);
+    CHECK_EQ(big <= small, false);
+    CHECK_EQ(big <= big, true);
 
     // External: less_than_or_equals
     unsigned_compare_lte(bool);
@@ -865,20 +907,20 @@ void test_lte()
 void test_equals()
 {
     // Comparison: equals
-    CHECK_EQ( (uint256_t(0xdeadbeefULL) == uint256_t(0xdeadbeefULL)), true);
+    CHECK_EQ((uint256_t(0xdeadbeefULL) == uint256_t(0xdeadbeefULL)), true);
     CHECK_EQ(!(uint256_t(0xdeadbeefULL) == uint256_t(0xfee1baadULL)), true);
 
     // External: equals
-    const bool     t   = true;
-    const bool     f   = false;
-    const uint8_t  u8  = 0xaaULL;
+    const bool t = true;
+    const bool f = false;
+    const uint8_t u8 = 0xaaULL;
     const uint16_t u16 = 0xaaaaULL;
     const uint32_t u32 = 0xaaaaaaaaULL;
     const uint64_t u64 = 0xaaaaaaaaaaaaaaaaULL;
 
-    CHECK_EQ(t,   uint256_t(t));
-    CHECK_EQ(f,   uint256_t(f));
-    CHECK_EQ(u8,  uint256_t(u8));
+    CHECK_EQ(t, uint256_t(t));
+    CHECK_EQ(f, uint256_t(f));
+    CHECK_EQ(u8, uint256_t(u8));
     CHECK_EQ(u16, uint256_t(u16));
     CHECK_EQ(u32, uint256_t(u32));
     CHECK_EQ(u64, uint256_t(u64));
@@ -891,26 +933,26 @@ void test_notequals()
 {
     // Comparison: not_equals
     CHECK_EQ(!(uint256_t(0xdeadbeefULL) != uint256_t(0xdeadbeefULL)), true);
-    CHECK_EQ( (uint256_t(0xdeadbeefULL) != uint256_t(0xfee1baadULL)), true);
+    CHECK_EQ((uint256_t(0xdeadbeefULL) != uint256_t(0xfee1baadULL)), true);
 
     // External: not_equals
-    const bool     t   = true;
-    const bool     f   = false;
-    const uint8_t  u8  = 0xaaULL;
+    const bool t = true;
+    const bool f = false;
+    const uint8_t u8 = 0xaaULL;
     const uint16_t u16 = 0xaaaaULL;
     const uint32_t u32 = 0xaaaaaaaaULL;
     const uint64_t u64 = 0xaaaaaaaaaaaaaaaaULL;
 
-    CHECK_EQ((t   != uint256_t(f)),   true);
-    CHECK_EQ((f   != uint256_t(t)),   true);
-    CHECK_EQ((u8  != uint256_t(u64)), true);
+    CHECK_EQ((t != uint256_t(f)), true);
+    CHECK_EQ((f != uint256_t(t)), true);
+    CHECK_EQ((u8 != uint256_t(u64)), true);
     CHECK_EQ((u16 != uint256_t(u32)), true);
     CHECK_EQ((u32 != uint256_t(u16)), true);
-    CHECK_EQ((u64 != uint256_t(u8)),  true);
+    CHECK_EQ((u64 != uint256_t(u8)), true);
 
-    CHECK_EQ((t   != uint256_t(t)),   false);
-    CHECK_EQ((f   != uint256_t(f)),   false);
-    CHECK_EQ((u8  != uint256_t(u8)),  false);
+    CHECK_EQ((t != uint256_t(t)), false);
+    CHECK_EQ((f != uint256_t(f)), false);
+    CHECK_EQ((u8 != uint256_t(u8)), false);
     CHECK_EQ((u16 != uint256_t(u16)), false);
     CHECK_EQ((u32 != uint256_t(u32)), false);
     CHECK_EQ((u64 != uint256_t(u64)), false);
@@ -922,43 +964,55 @@ void test_notequals()
 void test_add()
 {
     // Arithmetic: add
-    uint256_t low (0, 1);
+    uint256_t low(0, 1);
     uint256_t high(1, 0);
 
-    CHECK_EQ(low  + low,  2);
-    CHECK_EQ(low  + high, uint256_t(1, 1));
+    CHECK_EQ(low + low, 2);
+    CHECK_EQ(low + high, uint256_t(1, 1));
     CHECK_EQ(high + high, uint256_t(2, 0));
 
-    CHECK_EQ(low  += low,  2);
-    CHECK_EQ(low  += high, uint256_t(1, 2));
-    CHECK_EQ(high += low,  uint256_t(2, 2));
+    CHECK_EQ(low += low, 2);
+    CHECK_EQ(low += high, uint256_t(1, 2));
+    CHECK_EQ(high += low, uint256_t(2, 2));
 
     // External: add
-    bool     t     = true;
-    bool     f     = false;
-    uint8_t  u8    = 0xaaULL;
-    uint16_t u16   = 0xaaaaULL;
-    uint32_t u32   = 0xaaaaaaaaULL;
-    uint64_t u64   = 0xaaaaaaaaaaaaaaaaULL;
-    uint128_t u128  (0xaaaaaaaaaaaaaaaaULL, 0xaaaaaaaaaaaaaaaaULL);
+    bool t = true;
+    bool f = false;
+    uint8_t u8 = 0xaaULL;
+    uint16_t u16 = 0xaaaaULL;
+    uint32_t u32 = 0xaaaaaaaaULL;
+    uint64_t u64 = 0xaaaaaaaaaaaaaaaaULL;
+    uint128_t u128(0xaaaaaaaaaaaaaaaaULL, 0xaaaaaaaaaaaaaaaaULL);
 
     const uint256_t val(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL);
 
-    CHECK_EQ(t    +  val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f1ULL));
-    CHECK_EQ(f    +  val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL));
-    CHECK_EQ(u8   +  val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f19aULL));
-    CHECK_EQ(u16  +  val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f19b9aULL));
-    CHECK_EQ(u32  +  val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f19b9b9b9aULL));
-    CHECK_EQ(u64  +  val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f1ULL, 0x9b9b9b9b9b9b9b9aULL));
-    CHECK_EQ(u128 +  val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f1ULL, 0x9b9b9b9b9b9b9b9bULL, 0x9b9b9b9b9b9b9b9aULL));
+    CHECK_EQ(
+        t + val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f1ULL));
+    CHECK_EQ(
+        f + val, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL));
+    CHECK_EQ(
+        u8 + val,
+        uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f19aULL));
+    CHECK_EQ(
+        u16 + val,
+        uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f19b9aULL));
+    CHECK_EQ(
+        u32 + val,
+        uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f19b9b9b9aULL));
+    CHECK_EQ(
+        u64 + val,
+        uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f1ULL, 0x9b9b9b9b9b9b9b9aULL));
+    CHECK_EQ(
+        u128 + val,
+        uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f1ULL, 0x9b9b9b9b9b9b9b9bULL, 0x9b9b9b9b9b9b9b9aULL));
 
-    CHECK_EQ(t    += val, true);
-    CHECK_EQ(f    += val, true);
-    CHECK_EQ(u8   += val, (uint8_t)  0x9aULL);
-    CHECK_EQ(u16  += val, (uint16_t) 0x9b9aULL);
-    CHECK_EQ(u32  += val, (uint32_t) 0x9b9b9b9aULL);
-    CHECK_EQ(u64  += val, (uint64_t) 0x9b9b9b9b9b9b9b9aULL);
-    CHECK_EQ(u128 += val, uint128_t (0x9b9b9b9b9b9b9b9bULL, 0x9b9b9b9b9b9b9b9aULL));
+    CHECK_EQ(t += val, true);
+    CHECK_EQ(f += val, true);
+    CHECK_EQ(u8 += val, (uint8_t)0x9aULL);
+    CHECK_EQ(u16 += val, (uint16_t)0x9b9aULL);
+    CHECK_EQ(u32 += val, (uint32_t)0x9b9b9b9aULL);
+    CHECK_EQ(u64 += val, (uint64_t)0x9b9b9b9b9b9b9b9aULL);
+    CHECK_EQ(u128 += val, uint128_t(0x9b9b9b9b9b9b9b9bULL, 0x9b9b9b9b9b9b9b9aULL));
 }
 
 // ============================================================================
@@ -967,40 +1021,56 @@ void test_add()
 void test_sub()
 {
     // Arithmetic: subtract
-    uint256_t big  (0xffffffffffffffffULL, 0xffffffffffffffffULL, 0xffffffffffffffffULL, 0xffffffffffffffffULL);
+    uint256_t big(0xffffffffffffffffULL, 0xffffffffffffffffULL, 0xffffffffffffffffULL, 0xffffffffffffffffULL);
     const uint256_t small(0x0000000000000000ULL, 0x0000000000000001ULL);
 
     CHECK_EQ(small - small, 0);
-    CHECK_EQ(small - big,   uint256_t(0x0000000000000000ULL, 0x0000000000000000ULL, 0x0000000000000000ULL, 0x0000000000000002ULL));
-    CHECK_EQ(big   - small, uint256_t(0xffffffffffffffffULL, 0xffffffffffffffffULL, 0xffffffffffffffffULL, 0xfffffffffffffffeULL));
-    CHECK_EQ(big   - big,   0);
+    CHECK_EQ(
+        small - big,
+        uint256_t(0x0000000000000000ULL, 0x0000000000000000ULL, 0x0000000000000000ULL, 0x0000000000000002ULL));
+    CHECK_EQ(
+        big - small,
+        uint256_t(0xffffffffffffffffULL, 0xffffffffffffffffULL, 0xffffffffffffffffULL, 0xfffffffffffffffeULL));
+    CHECK_EQ(big - big, 0);
 
     // External: subtract
-    bool     t    = true;
-    bool     f    = false;
-    uint8_t  u8   = 0xaaULL;
-    uint16_t u16  = 0xaaaaULL;
-    uint32_t u32  = 0xaaaaaaaaULL;
-    uint64_t u64  = 0xaaaaaaaaaaaaaaaaULL;
-    uint128_t u128 (0xaaaaaaaaaaaaaaaaULL, 0xaaaaaaaaaaaaaaaaULL);
+    bool t = true;
+    bool f = false;
+    uint8_t u8 = 0xaaULL;
+    uint16_t u16 = 0xaaaaULL;
+    uint32_t u32 = 0xaaaaaaaaULL;
+    uint64_t u64 = 0xaaaaaaaaaaaaaaaaULL;
+    uint128_t u128(0xaaaaaaaaaaaaaaaaULL, 0xaaaaaaaaaaaaaaaaULL);
 
     const uint256_t val(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL);
 
-    CHECK_EQ(t    -  val, uint256_t(0x0f0f0f0f0f0f0f0fULL, 0x0f0f0f0f0f0f0f0fULL, 0x0f0f0f0f0f0f0f0fULL, 0x0f0f0f0f0f0f0f11ULL));
-    CHECK_EQ(f    -  val, uint256_t(0x0f0f0f0f0f0f0f0fULL, 0x0f0f0f0f0f0f0f0fULL, 0x0f0f0f0f0f0f0f0fULL, 0x0f0f0f0f0f0f0f10ULL));
-    CHECK_EQ(u8   -  val, uint256_t(0x0f0f0f0f0f0f0f0fULL, 0x0f0f0f0f0f0f0f0fULL, 0x0f0f0f0f0f0f0f0fULL, 0x0f0f0f0f0f0f0fbaULL));
-    CHECK_EQ(u16  -  val, uint256_t(0x0f0f0f0f0f0f0f0fULL, 0x0f0f0f0f0f0f0f0fULL, 0x0f0f0f0f0f0f0f0fULL, 0x0f0f0f0f0f0fb9baULL));
-    CHECK_EQ(u32  -  val, uint256_t(0x0f0f0f0f0f0f0f0fULL, 0x0f0f0f0f0f0f0f0fULL, 0x0f0f0f0f0f0f0f0fULL, 0x0f0f0f0fb9b9b9baULL));
-    CHECK_EQ(u64  -  val, uint256_t(0x0f0f0f0f0f0f0f0fULL, 0x0f0f0f0f0f0f0f0fULL, 0x0f0f0f0f0f0f0f0fULL, 0xb9b9b9b9b9b9b9baULL));
-    CHECK_EQ(u128 -  val, uint256_t(0x0f0f0f0f0f0f0f0fULL, 0x0f0f0f0f0f0f0f0fULL, 0xb9b9b9b9b9b9b9b9ULL, 0xb9b9b9b9b9b9b9baULL));
+    CHECK_EQ(
+        t - val, uint256_t(0x0f0f0f0f0f0f0f0fULL, 0x0f0f0f0f0f0f0f0fULL, 0x0f0f0f0f0f0f0f0fULL, 0x0f0f0f0f0f0f0f11ULL));
+    CHECK_EQ(
+        f - val, uint256_t(0x0f0f0f0f0f0f0f0fULL, 0x0f0f0f0f0f0f0f0fULL, 0x0f0f0f0f0f0f0f0fULL, 0x0f0f0f0f0f0f0f10ULL));
+    CHECK_EQ(
+        u8 - val,
+        uint256_t(0x0f0f0f0f0f0f0f0fULL, 0x0f0f0f0f0f0f0f0fULL, 0x0f0f0f0f0f0f0f0fULL, 0x0f0f0f0f0f0f0fbaULL));
+    CHECK_EQ(
+        u16 - val,
+        uint256_t(0x0f0f0f0f0f0f0f0fULL, 0x0f0f0f0f0f0f0f0fULL, 0x0f0f0f0f0f0f0f0fULL, 0x0f0f0f0f0f0fb9baULL));
+    CHECK_EQ(
+        u32 - val,
+        uint256_t(0x0f0f0f0f0f0f0f0fULL, 0x0f0f0f0f0f0f0f0fULL, 0x0f0f0f0f0f0f0f0fULL, 0x0f0f0f0fb9b9b9baULL));
+    CHECK_EQ(
+        u64 - val,
+        uint256_t(0x0f0f0f0f0f0f0f0fULL, 0x0f0f0f0f0f0f0f0fULL, 0x0f0f0f0f0f0f0f0fULL, 0xb9b9b9b9b9b9b9baULL));
+    CHECK_EQ(
+        u128 - val,
+        uint256_t(0x0f0f0f0f0f0f0f0fULL, 0x0f0f0f0f0f0f0f0fULL, 0xb9b9b9b9b9b9b9b9ULL, 0xb9b9b9b9b9b9b9baULL));
 
-    CHECK_EQ(t    -= val, true);
-    CHECK_EQ(f    -= val, true);
-    CHECK_EQ(u8   -= val, (uint8_t)  0xbaULL);
-    CHECK_EQ(u16  -= val, (uint16_t) 0xb9baULL);
-    CHECK_EQ(u32  -= val, (uint32_t) 0xb9b9b9baULL);
-    CHECK_EQ(u64  -= val, (uint64_t) 0xb9b9b9b9b9b9b9baULL);
-    CHECK_EQ(u128 -= val,  uint128_t(0xb9b9b9b9b9b9b9b9ULL, 0xb9b9b9b9b9b9b9baULL));
+    CHECK_EQ(t -= val, true);
+    CHECK_EQ(f -= val, true);
+    CHECK_EQ(u8 -= val, (uint8_t)0xbaULL);
+    CHECK_EQ(u16 -= val, (uint16_t)0xb9baULL);
+    CHECK_EQ(u32 -= val, (uint32_t)0xb9b9b9baULL);
+    CHECK_EQ(u64 -= val, (uint64_t)0xb9b9b9b9b9b9b9baULL);
+    CHECK_EQ(u128 -= val, uint128_t(0xb9b9b9b9b9b9b9b9ULL, 0xb9b9b9b9b9b9b9baULL));
 }
 
 // ============================================================================
@@ -1011,42 +1081,58 @@ void test_mult()
     // Arithmetic: multiply
     uint256_t val(0xfedbca9876543210ULL);
 
-    CHECK_EQ(val * val, uint256_t(0x0000000000000000ULL, 0x0000000000000000ULL, 0xfdb8e2bacbfe7cefULL, 0x010e6cd7a44a4100ULL));
+    CHECK_EQ(
+        val * val,
+        uint256_t(0x0000000000000000ULL, 0x0000000000000000ULL, 0xfdb8e2bacbfe7cefULL, 0x010e6cd7a44a4100ULL));
 
     const uint256_t zero = 0;
-    CHECK_EQ(val  * zero, zero);
-    CHECK_EQ(zero * val,  zero);
+    CHECK_EQ(val * zero, zero);
+    CHECK_EQ(zero * val, zero);
 
     const uint256_t one = 1;
     CHECK_EQ(val * one, val);
     CHECK_EQ(one * val, val);
 
     // External: multiply
-    bool      t    = true;
-    bool      f    = false;
-    uint8_t   u8   = 0xaaULL;
-    uint16_t  u16  = 0xaaaaULL;
-    uint32_t  u32  = 0xaaaaaaaaULL;
-    uint64_t  u64  = 0xaaaaaaaaaaaaaaaaULL;
-    uint128_t u128  (0xaaaaaaaaaaaaaaaaULL, 0xaaaaaaaaaaaaaaaaULL);
+    bool t = true;
+    bool f = false;
+    uint8_t u8 = 0xaaULL;
+    uint16_t u16 = 0xaaaaULL;
+    uint32_t u32 = 0xaaaaaaaaULL;
+    uint64_t u64 = 0xaaaaaaaaaaaaaaaaULL;
+    uint128_t u128(0xaaaaaaaaaaaaaaaaULL, 0xaaaaaaaaaaaaaaaaULL);
 
     const uint256_t val2(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL);
 
-    CHECK_EQ(t    *  val2, uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL));
-    CHECK_EQ(f    *  val2, uint256_t(0x0000000000000000ULL, 0x0000000000000000ULL, 0x0000000000000000ULL, 0x0000000000000000ULL));
-    CHECK_EQ(u8   *  val2, uint256_t(0xffffffffffffffffULL, 0xffffffffffffffffULL, 0xffffffffffffffffULL, 0xffffffffffffff60ULL));
-    CHECK_EQ(u16  *  val2, uint256_t(0xffffffffffffffffULL, 0xffffffffffffffffULL, 0xffffffffffffffffULL, 0xffffffffffff5f60ULL));
-    CHECK_EQ(u32  *  val2, uint256_t(0xffffffffffffffffULL, 0xffffffffffffffffULL, 0xffffffffffffffffULL, 0xffffffff5f5f5f60ULL));
-    CHECK_EQ(u64  *  val2, uint256_t(0xffffffffffffffffULL, 0xffffffffffffffffULL, 0xffffffffffffffffULL, 0x5f5f5f5f5f5f5f60ULL));
-    CHECK_EQ(u128 *  val2, uint256_t(0xffffffffffffffffULL, 0xffffffffffffffffULL, 0x5f5f5f5f5f5f5f5fULL, 0x5f5f5f5f5f5f5f60ULL));
+    CHECK_EQ(
+        t * val2,
+        uint256_t(0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL, 0xf0f0f0f0f0f0f0f0ULL));
+    CHECK_EQ(
+        f * val2,
+        uint256_t(0x0000000000000000ULL, 0x0000000000000000ULL, 0x0000000000000000ULL, 0x0000000000000000ULL));
+    CHECK_EQ(
+        u8 * val2,
+        uint256_t(0xffffffffffffffffULL, 0xffffffffffffffffULL, 0xffffffffffffffffULL, 0xffffffffffffff60ULL));
+    CHECK_EQ(
+        u16 * val2,
+        uint256_t(0xffffffffffffffffULL, 0xffffffffffffffffULL, 0xffffffffffffffffULL, 0xffffffffffff5f60ULL));
+    CHECK_EQ(
+        u32 * val2,
+        uint256_t(0xffffffffffffffffULL, 0xffffffffffffffffULL, 0xffffffffffffffffULL, 0xffffffff5f5f5f60ULL));
+    CHECK_EQ(
+        u64 * val2,
+        uint256_t(0xffffffffffffffffULL, 0xffffffffffffffffULL, 0xffffffffffffffffULL, 0x5f5f5f5f5f5f5f60ULL));
+    CHECK_EQ(
+        u128 * val2,
+        uint256_t(0xffffffffffffffffULL, 0xffffffffffffffffULL, 0x5f5f5f5f5f5f5f5fULL, 0x5f5f5f5f5f5f5f60ULL));
 
-    CHECK_EQ(t    *= val2, true);
-    CHECK_EQ(f    *= val2, false);
-    CHECK_EQ(u8   *= val2, (uint8_t)                0x60ULL);
-    CHECK_EQ(u16  *= val2, (uint16_t)             0x5f60ULL);
-    CHECK_EQ(u32  *= val2, (uint32_t)         0x5f5f5f60ULL);
-    CHECK_EQ(u64  *= val2, (uint64_t) 0x5f5f5f5f5f5f5f60ULL);
-    CHECK_EQ(u128 *= val2,  uint128_t(0x5f5f5f5f5f5f5f5fULL, 0x5f5f5f5f5f5f5f60ULL));
+    CHECK_EQ(t *= val2, true);
+    CHECK_EQ(f *= val2, false);
+    CHECK_EQ(u8 *= val2, (uint8_t)0x60ULL);
+    CHECK_EQ(u16 *= val2, (uint16_t)0x5f60ULL);
+    CHECK_EQ(u32 *= val2, (uint32_t)0x5f5f5f60ULL);
+    CHECK_EQ(u64 *= val2, (uint64_t)0x5f5f5f5f5f5f5f60ULL);
+    CHECK_EQ(u128 *= val2, uint128_t(0x5f5f5f5f5f5f5f5fULL, 0x5f5f5f5f5f5f5f60ULL));
 }
 
 // ============================================================================
@@ -1055,43 +1141,45 @@ void test_mult()
 void test_div()
 {
     // Arithmetic: divide
-    const uint256_t big    (0xfedbca9876543210ULL);
-    const uint256_t small  (0xffffULL);
+    const uint256_t big(0xfedbca9876543210ULL);
+    const uint256_t small(0xffffULL);
     const uint256_t res_val(0xfedcc9753fc9ULL);
 
     CHECK_EQ(small / small, 1);
-    CHECK_EQ(small / big,   0);
+    CHECK_EQ(small / big, 0);
 
-    CHECK_EQ(big   / big,   1);
+    CHECK_EQ(big / big, 1);
 
     CHECK_THROW(uint256_t(1) / uint256_t(0), std::domain_error);
 
     // External: divide
-    bool      t    = true;
-    bool      f    = false;
-    uint8_t   u8   = 0xaaULL;
-    uint16_t  u16  = 0xaaaaULL;
-    uint32_t  u32  = 0xaaaaaaaaULL;
-    uint64_t  u64  = 0xaaaaaaaaaaaaaaaaULL;
-    uint128_t u128  (0xaaaaaaaaaaaaaaaaULL, 0xaaaaaaaaaaaaaaaaULL);
+    bool t = true;
+    bool f = false;
+    uint8_t u8 = 0xaaULL;
+    uint16_t u16 = 0xaaaaULL;
+    uint32_t u32 = 0xaaaaaaaaULL;
+    uint64_t u64 = 0xaaaaaaaaaaaaaaaaULL;
+    uint128_t u128(0xaaaaaaaaaaaaaaaaULL, 0xaaaaaaaaaaaaaaaaULL);
 
     const uint256_t val(0x7bULL);
 
-    CHECK_EQ(t    /  val, false);
-    CHECK_EQ(f    /  val, false);
-    CHECK_EQ(u8   /  val, uint256_t(0x1ULL));
-    CHECK_EQ(u16  /  val, uint256_t(0x163ULL));
-    CHECK_EQ(u32  /  val, uint256_t(0x163356bULL));
-    CHECK_EQ(u64  /  val, uint256_t(0x163356b88ac0de0ULL));
-    CHECK_EQ(u128 /  val, uint256_t(0x0000000000000000ULL, 0x0000000000000000ULL, 0x163356b88ac0de0ULL, 0x163356b88ac0de01ULL));
+    CHECK_EQ(t / val, false);
+    CHECK_EQ(f / val, false);
+    CHECK_EQ(u8 / val, uint256_t(0x1ULL));
+    CHECK_EQ(u16 / val, uint256_t(0x163ULL));
+    CHECK_EQ(u32 / val, uint256_t(0x163356bULL));
+    CHECK_EQ(u64 / val, uint256_t(0x163356b88ac0de0ULL));
+    CHECK_EQ(
+        u128 / val,
+        uint256_t(0x0000000000000000ULL, 0x0000000000000000ULL, 0x163356b88ac0de0ULL, 0x163356b88ac0de01ULL));
 
-    CHECK_EQ(t    /= val, false);
-    CHECK_EQ(f    /= val, false);
-    CHECK_EQ(u8   /= val, (uint8_t)  0x1ULL);
-    CHECK_EQ(u16  /= val, (uint16_t) 0x163ULL);
-    CHECK_EQ(u32  /= val, (uint32_t) 0x163356bULL);
-    CHECK_EQ(u64  /= val, (uint64_t) 0x163356b88ac0de0ULL);
-    CHECK_EQ(u128 /= val,  uint128_t(0x163356b88ac0de0ULL, 0x163356b88ac0de01ULL));
+    CHECK_EQ(t /= val, false);
+    CHECK_EQ(f /= val, false);
+    CHECK_EQ(u8 /= val, (uint8_t)0x1ULL);
+    CHECK_EQ(u16 /= val, (uint16_t)0x163ULL);
+    CHECK_EQ(u32 /= val, (uint32_t)0x163356bULL);
+    CHECK_EQ(u64 /= val, (uint64_t)0x163356b88ac0de0ULL);
+    CHECK_EQ(u128 /= val, uint128_t(0x163356b88ac0de0ULL, 0x163356b88ac0de01ULL));
 }
 
 // ============================================================================
@@ -1101,44 +1189,44 @@ void test_mod()
 {
     // Arithmetic: modulo
     // has remainder
-    const uint256_t val    (0xffffffffffffffffULL, 0xffffffffffffffffULL, 0xffffffffffffffffULL, 0xffffffffffffffffULL);
+    const uint256_t val(0xffffffffffffffffULL, 0xffffffffffffffffULL, 0xffffffffffffffffULL, 0xffffffffffffffffULL);
     const uint256_t val_mod(0xfedcba9876543210ULL);
 
     CHECK_EQ(val % val_mod, uint256_t(0x63794f9d55c8d29f));
 
     // no remainder
-    const uint256_t val_0  (0xfedcba9876543210, 0, 0, 0);
+    const uint256_t val_0(0xfedcba9876543210, 0, 0, 0);
     CHECK_EQ(val_0 % val_mod, 0);
 
     // mod 0
     CHECK_THROW(uint256_t(1) % uint256_t(0), std::domain_error);
 
     // External: modulo
-    bool      t    = true;
-    bool      f    = false;
-    uint8_t   u8   = 0xaaULL;
-    uint16_t  u16  = 0xaaaaULL;
-    uint32_t  u32  = 0xaaaaaaaaULL;
-    uint64_t  u64  = 0xaaaaaaaaaaaaaaaaULL;
-    uint128_t u128  (0xaaaaaaaaaaaaaaaaULL, 0xaaaaaaaaaaaaaaaaULL);
+    bool t = true;
+    bool f = false;
+    uint8_t u8 = 0xaaULL;
+    uint16_t u16 = 0xaaaaULL;
+    uint32_t u32 = 0xaaaaaaaaULL;
+    uint64_t u64 = 0xaaaaaaaaaaaaaaaaULL;
+    uint128_t u128(0xaaaaaaaaaaaaaaaaULL, 0xaaaaaaaaaaaaaaaaULL);
 
     const uint256_t val2(0xd03ULL); // prime
 
-    CHECK_EQ(t    %  val2, true);
-    CHECK_EQ(f    %  val2, false);
-    CHECK_EQ(u8   %  val2, uint256_t(0xaaULL));
-    CHECK_EQ(u16  %  val2, uint256_t(0x183ULL));
-    CHECK_EQ(u32  %  val2, uint256_t(0x249ULL));
-    CHECK_EQ(u64  %  val2, uint256_t(0xc7fULL));
-    CHECK_EQ(u128 %  val2, uint256_t(0x9fbULL));
+    CHECK_EQ(t % val2, true);
+    CHECK_EQ(f % val2, false);
+    CHECK_EQ(u8 % val2, uint256_t(0xaaULL));
+    CHECK_EQ(u16 % val2, uint256_t(0x183ULL));
+    CHECK_EQ(u32 % val2, uint256_t(0x249ULL));
+    CHECK_EQ(u64 % val2, uint256_t(0xc7fULL));
+    CHECK_EQ(u128 % val2, uint256_t(0x9fbULL));
 
-    CHECK_EQ(t    %= val2, true);
-    CHECK_EQ(f    %= val2, false);
-    CHECK_EQ(u8   %= val2, (uint8_t)   0xaaULL);
-    CHECK_EQ(u16  %= val2, (uint16_t)  0x183ULL);
-    CHECK_EQ(u32  %= val2, (uint32_t)  0x249ULL);
-    CHECK_EQ(u64  %= val2, (uint64_t)  0xc7fULL);
-    CHECK_EQ(u128 %= val2, (uint256_t) 0x9fbULL);
+    CHECK_EQ(t %= val2, true);
+    CHECK_EQ(f %= val2, false);
+    CHECK_EQ(u8 %= val2, (uint8_t)0xaaULL);
+    CHECK_EQ(u16 %= val2, (uint16_t)0x183ULL);
+    CHECK_EQ(u32 %= val2, (uint32_t)0x249ULL);
+    CHECK_EQ(u64 %= val2, (uint64_t)0xc7fULL);
+    CHECK_EQ(u128 %= val2, (uint256_t)0x9fbULL);
 }
 
 // ============================================================================
@@ -1157,9 +1245,15 @@ void test_fix()
     // Arithmetic, decrement
     {
         uint256_t value(0);
-        CHECK_EQ(--value, uint256_t(0xffffffffffffffffULL, 0xffffffffffffffffULL, 0xffffffffffffffffULL, 0xffffffffffffffffULL));
-        CHECK_EQ(value--, uint256_t(0xffffffffffffffffULL, 0xffffffffffffffffULL, 0xffffffffffffffffULL, 0xffffffffffffffffULL));
-        CHECK_EQ(--value, uint256_t(0xffffffffffffffffULL, 0xffffffffffffffffULL, 0xffffffffffffffffULL, 0xfffffffffffffffdULL));
+        CHECK_EQ(
+            --value,
+            uint256_t(0xffffffffffffffffULL, 0xffffffffffffffffULL, 0xffffffffffffffffULL, 0xffffffffffffffffULL));
+        CHECK_EQ(
+            value--,
+            uint256_t(0xffffffffffffffffULL, 0xffffffffffffffffULL, 0xffffffffffffffffULL, 0xffffffffffffffffULL));
+        CHECK_EQ(
+            --value,
+            uint256_t(0xffffffffffffffffULL, 0xffffffffffffffffULL, 0xffffffffffffffffULL, 0xfffffffffffffffdULL));
     }
 }
 
@@ -1180,7 +1274,8 @@ void test_unary()
         const uint256_t neg = -val;
         CHECK_EQ(-val, neg);
         CHECK_EQ(-neg, val);
-        CHECK_EQ(neg, uint256_t(0xffffffffffffffffULL, 0xffffffffffffffffULL, 0xffffffffffffffffULL, 0xffffffffffffffffULL));
+        CHECK_EQ(
+            neg, uint256_t(0xffffffffffffffffULL, 0xffffffffffffffffULL, 0xffffffffffffffffULL, 0xffffffffffffffffULL));
     }
 }
 
@@ -1551,7 +1646,7 @@ void test_uint256_string()
 
     // 0x prefix handling
     CHECK(uint256_t("0xFF") == uint256_t(255));
-    CHECK(uint256_t("xFF") == uint256_0);  // standalone 'x' prefix no longer accepted
+    CHECK(uint256_t("xFF") == uint256_0); // standalone 'x' prefix no longer accepted
     CHECK(uint256_t("0x0") == uint256_0);
 
     // Mixed case hex

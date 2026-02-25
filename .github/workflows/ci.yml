@@ -17,43 +17,43 @@ jobs:
           - os: ubuntu-latest
             CC: gcc-11
             CXX: g++-11
-            CMAKE_CMD: cmake ..
+            CMAKE_CMD: cmake .. -DENABLE_WERROR=ON -DARCH=default
             NAME: gcc-11
 
           - os: ubuntu-latest
             CC: gcc-12
             CXX: g++-12
-            CMAKE_CMD: cmake ..
+            CMAKE_CMD: cmake .. -DENABLE_WERROR=ON -DARCH=default
             NAME: gcc-12
 
           - os: ubuntu-latest
             CC: clang-14
             CXX: clang++-14
-            CMAKE_CMD: cmake ..
+            CMAKE_CMD: cmake .. -DENABLE_WERROR=ON -DARCH=default
             NAME: clang-14
 
           - os: ubuntu-latest
             CC: clang-15
             CXX: clang++-15
-            CMAKE_CMD: cmake ..
+            CMAKE_CMD: cmake .. -DENABLE_WERROR=ON -DARCH=default
             NAME: clang-15
 
           - os: macos-latest
             CC: /opt/homebrew/opt/llvm/bin/clang
             CXX: /opt/homebrew/opt/llvm/bin/clang++
-            CMAKE_CMD: cmake ..
+            CMAKE_CMD: cmake .. -DENABLE_WERROR=ON -DARCH=default
             NAME: clang
 
           - os: macos-latest
-            CMAKE_CMD: cmake ..
+            CMAKE_CMD: cmake .. -DENABLE_WERROR=ON -DARCH=default
             NAME: AppleClang
 
           - os: windows-latest
-            CMAKE_CMD: cmake ..
+            CMAKE_CMD: cmake .. -DENABLE_WERROR=ON
             NAME: msvc
 
           - os: windows-latest
-            CMAKE_CMD: cmake .. -G "Unix Makefiles"
+            CMAKE_CMD: cmake .. -DENABLE_WERROR=ON -DARCH=default -G "Unix Makefiles"
             NAME: mingw-gcc
 
     name: ${{ matrix.os }}-${{ matrix.NAME }} - C++ Test

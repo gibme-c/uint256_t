@@ -24,6 +24,8 @@
 #ifndef UINT256T_CONFIG_H
 #define UINT256T_CONFIG_H
 #if defined(_MSC_VER)
+// C4251: class member needs dll-interface — harmless for private members and static builds
+#pragma warning(disable : 4251)
 #if defined(_DLL)
 #define UINT256T_EXPORT __declspec(dllexport)
 #define UINT256T_IMPORT
