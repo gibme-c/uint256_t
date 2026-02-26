@@ -25,10 +25,6 @@ option(BUILD_TESTS "Build test executables" ON)
 option(ENABLE_WERROR "Treat warnings as errors" OFF)
 option(ENABLE_SANITIZERS "Enable ASAN + UBSAN (Debug builds)" OFF)
 
-# Architecture flag (non-MSVC only)
-if(NOT MSVC)
-    set(ARCH native CACHE STRING "CPU to build for: -march value or 'default' for none")
-endif()
 
 # --- Detect MinGW environment ---
 # Only use CMake's built-in MINGW (set for GCC with MinGW). Clang on Windows can
@@ -51,13 +47,6 @@ set(_is_gnu_like "$<OR:${_is_gcc},${_is_clang},${_is_appleclang}>")
 set(_is_linux "$<PLATFORM_ID:Linux>")
 set(_is_debug "$<CONFIG:Debug>")
 set(_is_release "$<OR:$<CONFIG:Release>,$<CONFIG:RelWithDebInfo>,$<CONFIG:MinSizeRel>>")
-
-# --- Architecture flag (non-MSVC, scoped via interface library) ---
-if(NOT MSVC AND NOT "${ARCH}" STREQUAL "default")
-    target_compile_options(uint256t_hardening INTERFACE
-        $<${_is_gnu_like}:-march=${ARCH}>
-    )
-endif()
 
 # --- 1. Warnings (GCC/Clang) ---
 target_compile_options(uint256t_hardening INTERFACE
