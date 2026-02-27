@@ -198,7 +198,10 @@ set_target_properties(uint256t PROPERTIES
     POSITION_INDEPENDENT_CODE ON
 )
 
-target_include_directories(uint256t PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+# For building uint256t itself — NOT system (you want to see your own warnings)
+target_include_directories(uint256t PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+# For consumers of uint256t — SYSTEM so they don't get our warnings
+target_include_directories(uint256t SYSTEM INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(uint256t PRIVATE uint256t_hardening)
 
 # ---------------------------------------------------------------------------
