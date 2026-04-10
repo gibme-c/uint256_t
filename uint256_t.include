@@ -47,9 +47,6 @@ namespace uint256
 
     template<>
     struct is_unsigned_or_mytype<uint256_t> : std::true_type {};
-
-    template<>
-    struct has_uint128_conversion<uint256_t> : std::true_type {};
 } // namespace uint256
 
 class UINT256_T_EXTERN uint256_t

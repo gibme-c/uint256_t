@@ -34,6 +34,7 @@
 #include <vector>
 
 class UINT256_T_EXTERN uint128_t;
+class UINT256_T_EXTERN uint256_t;
 
 // Give uint128_t type traits
 // specializing a standard library type trait is not allowed in modern C++ (in C++20 and enforced strictly)
@@ -55,12 +56,6 @@ namespace uint256 {
 
     template<>
     struct is_unsigned_or_mytype<uint128_t> : std::true_type {};
-
-    // Tag trait to prevent uint128_t's template constructor from accepting
-    // types that provide their own explicit conversion operator to uint128_t.
-    // Specialized to true_type for uint256_t in uint256_t.include.
-    template<typename T>
-    struct has_uint128_conversion : std::false_type {};
 }
 
 class UINT256_T_EXTERN uint128_t
@@ -84,8 +79,9 @@ class UINT256_T_EXTERN uint128_t
     uint128_t(const std::string &s);
     uint128_t(const char *s);
     uint128_t(const bool &b);
+    uint128_t(const uint256_t &rhs);
 
-    template<typename T, typename = typename std::enable_if<uint256::is_integral_or_mytype<T>::value && !uint256::has_uint128_conversion<T>::value, T>::type>
+    template<typename T, typename = typename std::enable_if<uint256::is_integral_or_mytype<T>::value, T>::type>
     uint128_t(const T &rhs)
 #ifdef __BIG_ENDIAN__
         :
@@ -129,7 +125,7 @@ class UINT256_T_EXTERN uint128_t
     uint128_t &operator=(const uint128_t &rhs) = default;
     uint128_t &operator=(uint128_t &&rhs) noexcept = default;
 
-    template<typename T, typename = typename std::enable_if<uint256::is_integral_or_mytype<T>::value && !uint256::has_uint128_conversion<T>::value, T>::type>
+    template<typename T, typename = typename std::enable_if<uint256::is_integral_or_mytype<T>::value, T>::type>
     uint128_t &operator=(const T &rhs)
     {
         UPPER = 0;
@@ -147,6 +143,7 @@ class UINT256_T_EXTERN uint128_t
     }
 
     uint128_t &operator=(const bool &rhs);
+    uint128_t &operator=(const uint256_t &rhs);
 
     // Typecast Operators
     operator bool() const;

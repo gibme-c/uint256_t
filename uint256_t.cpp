@@ -175,6 +175,14 @@ uint256_t::operator uint128_t() const
     return LOWER;
 }
 
+uint128_t::uint128_t(const uint256_t &rhs) : uint128_t(rhs.lower()) {}
+
+uint128_t &uint128_t::operator=(const uint256_t &rhs)
+{
+    *this = rhs.lower();
+    return *this;
+}
+
 uint256_t uint256_t::operator&(const uint128_t &rhs) const
 {
     return uint256_t(uint128_0, LOWER & rhs);
