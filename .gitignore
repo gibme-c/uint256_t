@@ -153,3 +153,4 @@ dist/
 
 # CMake
 cmake-build*
+docs/

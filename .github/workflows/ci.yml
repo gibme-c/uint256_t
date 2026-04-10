@@ -17,35 +17,35 @@ jobs:
           - os: ubuntu-latest
             CC: gcc-11
             CXX: g++-11
-            CMAKE_CMD: cmake .. -DENABLE_WERROR=ON -DARCH=default
+            CMAKE_CMD: cmake .. -DENABLE_WERROR=ON
             NAME: gcc-11
 
           - os: ubuntu-latest
             CC: gcc-12
             CXX: g++-12
-            CMAKE_CMD: cmake .. -DENABLE_WERROR=ON -DARCH=default
+            CMAKE_CMD: cmake .. -DENABLE_WERROR=ON
             NAME: gcc-12
 
           - os: ubuntu-latest
             CC: clang-14
             CXX: clang++-14
-            CMAKE_CMD: cmake .. -DENABLE_WERROR=ON -DARCH=default
+            CMAKE_CMD: cmake .. -DENABLE_WERROR=ON
             NAME: clang-14
 
           - os: ubuntu-latest
             CC: clang-15
             CXX: clang++-15
-            CMAKE_CMD: cmake .. -DENABLE_WERROR=ON -DARCH=default
+            CMAKE_CMD: cmake .. -DENABLE_WERROR=ON
             NAME: clang-15
 
           - os: macos-latest
             CC: /opt/homebrew/opt/llvm/bin/clang
             CXX: /opt/homebrew/opt/llvm/bin/clang++
-            CMAKE_CMD: cmake .. -DENABLE_WERROR=ON -DARCH=default
+            CMAKE_CMD: cmake .. -DENABLE_WERROR=ON
             NAME: clang
 
           - os: macos-latest
-            CMAKE_CMD: cmake .. -DENABLE_WERROR=ON -DARCH=default
+            CMAKE_CMD: cmake .. -DENABLE_WERROR=ON
             NAME: AppleClang
 
           - os: windows-latest
@@ -53,17 +53,16 @@ jobs:
             NAME: msvc
 
           - os: windows-latest
-            CMAKE_CMD: cmake .. -DENABLE_WERROR=ON -DARCH=default -G "Unix Makefiles"
+            CMAKE_CMD: cmake .. -DENABLE_WERROR=ON -G "Unix Makefiles"
             NAME: mingw-gcc
 
     name: ${{ matrix.os }}-${{ matrix.NAME }} - C++ Test
     env:
       MSBUILD_PATH: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin"
     steps:
-      - uses: actions/checkout@v1
-      - name: Checkout Submodules
-        run: |
-          git submodule update --init --recursive
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: Create Build Directory
         run: mkdir build
 

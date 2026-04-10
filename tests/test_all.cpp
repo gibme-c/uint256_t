@@ -1286,17 +1286,17 @@ void test_type_traits()
 {
     // Type_Traits, is_arithmetic_or_mytype
     {
-        CHECK_EQ(std::is_arithmetic_or_mytype<uint256_t>::value, true);
+        CHECK_EQ(uint256::is_arithmetic_or_mytype<uint256_t>::value, true);
     }
 
     // Type_Traits, is_integral_or_mytype
     {
-        CHECK_EQ(std::is_integral_or_mytype<uint256_t>::value, true);
+        CHECK_EQ(uint256::is_integral_or_mytype<uint256_t>::value, true);
     }
 
     // Type_Traits, is_unsigned_or_mytype
     {
-        CHECK_EQ(std::is_unsigned_or_mytype<uint256_t>::value, true);
+        CHECK_EQ(uint256::is_unsigned_or_mytype<uint256_t>::value, true);
     }
 }
 
