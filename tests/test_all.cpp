@@ -1840,6 +1840,894 @@ void test_audit_fixes_pass2()
 }
 
 // ============================================================================
+// test_shift_boundary_values
+// ============================================================================
+void test_shift_boundary_values()
+{
+    // Left shift by exact word boundaries
+    {
+        const uint256_t one(1);
+
+        // 63: bit 63 in lower.lower
+        {
+            uint256_t r = one << uint256_t(63);
+            CHECK_EQ(r.lower().lower(), uint64_t(1) << 63);
+            CHECK_EQ(r.lower().upper(), 0ULL);
+            CHECK_EQ(r.upper(), uint128_0);
+        }
+
+        // 65: bit 1 in lower.upper
+        {
+            uint256_t r = one << uint256_t(65);
+            CHECK_EQ(r.lower().lower(), 0ULL);
+            CHECK_EQ(r.lower().upper(), 2ULL);
+            CHECK_EQ(r.upper(), uint128_0);
+        }
+
+        // 127: bit 63 in lower.upper
+        {
+            uint256_t r = one << uint256_t(127);
+            CHECK_EQ(r.lower().lower(), 0ULL);
+            CHECK_EQ(r.lower().upper(), uint64_t(1) << 63);
+            CHECK_EQ(r.upper(), uint128_0);
+        }
+
+        // 129: bit 1 in upper.lower
+        {
+            uint256_t r = one << uint256_t(129);
+            CHECK_EQ(r.lower(), uint128_0);
+            CHECK_EQ(r.upper().lower(), 2ULL);
+            CHECK_EQ(r.upper().upper(), 0ULL);
+        }
+
+        // 191: bit 63 in upper.lower
+        {
+            uint256_t r = one << uint256_t(191);
+            CHECK_EQ(r.lower(), uint128_0);
+            CHECK_EQ(r.upper().lower(), uint64_t(1) << 63);
+            CHECK_EQ(r.upper().upper(), 0ULL);
+        }
+
+        // 192: bit 0 in upper.upper
+        {
+            uint256_t r = one << uint256_t(192);
+            CHECK_EQ(r.lower(), uint128_0);
+            CHECK_EQ(r.upper().lower(), 0ULL);
+            CHECK_EQ(r.upper().upper(), 1ULL);
+        }
+
+        // 193: bit 1 in upper.upper
+        {
+            uint256_t r = one << uint256_t(193);
+            CHECK_EQ(r.lower(), uint128_0);
+            CHECK_EQ(r.upper().lower(), 0ULL);
+            CHECK_EQ(r.upper().upper(), 2ULL);
+        }
+    }
+
+    // Right shift from bit 255 (highest bit set)
+    {
+        const uint256_t high_bit(uint128_t(uint64_t(1) << 63, 0), uint128_0);
+
+        // >> 63: bit 192 -> upper.upper bit 0
+        {
+            uint256_t r = high_bit >> uint256_t(63);
+            CHECK_EQ(r.upper().upper(), 1ULL);
+            CHECK_EQ(r.upper().lower(), 0ULL);
+            CHECK_EQ(r.lower(), uint128_0);
+        }
+
+        // >> 65: bit 190 -> upper.lower bit 62
+        {
+            uint256_t r = high_bit >> uint256_t(65);
+            CHECK_EQ(r.upper().upper(), 0ULL);
+            CHECK_EQ(r.upper().lower(), uint64_t(1) << 62);
+            CHECK_EQ(r.lower(), uint128_0);
+        }
+
+        // >> 127: bit 128 -> upper.lower bit 0
+        {
+            uint256_t r = high_bit >> uint256_t(127);
+            CHECK_EQ(r.upper().upper(), 0ULL);
+            CHECK_EQ(r.upper().lower(), 1ULL);
+            CHECK_EQ(r.lower(), uint128_0);
+        }
+
+        // >> 129: bit 126 -> lower.upper bit 62
+        {
+            uint256_t r = high_bit >> uint256_t(129);
+            CHECK_EQ(r.upper(), uint128_0);
+            CHECK_EQ(r.lower().upper(), uint64_t(1) << 62);
+            CHECK_EQ(r.lower().lower(), 0ULL);
+        }
+
+        // >> 191: bit 64 -> lower.upper bit 0
+        {
+            uint256_t r = high_bit >> uint256_t(191);
+            CHECK_EQ(r.upper(), uint128_0);
+            CHECK_EQ(r.lower().upper(), 1ULL);
+            CHECK_EQ(r.lower().lower(), 0ULL);
+        }
+
+        // >> 192: bit 63 -> lower.lower bit 63
+        {
+            uint256_t r = high_bit >> uint256_t(192);
+            CHECK_EQ(r.upper(), uint128_0);
+            CHECK_EQ(r.lower().upper(), 0ULL);
+            CHECK_EQ(r.lower().lower(), uint64_t(1) << 63);
+        }
+
+        // >> 193: bit 62 -> lower.lower bit 62
+        {
+            uint256_t r = high_bit >> uint256_t(193);
+            CHECK_EQ(r.upper(), uint128_0);
+            CHECK_EQ(r.lower().upper(), 0ULL);
+            CHECK_EQ(r.lower().lower(), uint64_t(1) << 62);
+        }
+    }
+
+    // Shift-assign variants
+    {
+        uint256_t v(1);
+        v <<= uint256_t(192);
+        CHECK_EQ(v.upper().upper(), 1ULL);
+        CHECK_EQ(v.upper().lower(), 0ULL);
+        CHECK_EQ(v.lower(), uint128_0);
+
+        v >>= uint256_t(192);
+        CHECK_EQ(v, uint256_1);
+    }
+}
+
+// ============================================================================
+// test_free_functions
+// ============================================================================
+void test_free_functions()
+{
+    // LHS native type + uint256_t (free function operators)
+    // Arithmetic
+    {
+        CHECK_EQ(uint64_t(100) + uint256_t(50), uint256_t(150));
+        CHECK_EQ(uint64_t(100) - uint256_t(50), uint256_t(50));
+        CHECK_EQ(uint64_t(10) * uint256_t(20), uint256_t(200));
+        CHECK_EQ(uint64_t(100) / uint256_t(10), uint256_t(10));
+        CHECK_EQ(uint64_t(100) % uint256_t(30), uint256_t(10));
+    }
+
+    // Comparison with native LHS
+    {
+        CHECK(uint64_t(5) == uint256_t(5));
+        CHECK(uint64_t(5) != uint256_t(6));
+        CHECK(uint64_t(5) > uint256_t(4));
+        CHECK(uint64_t(5) < uint256_t(6));
+        CHECK(uint64_t(5) >= uint256_t(5));
+        CHECK(uint64_t(5) <= uint256_t(5));
+        CHECK(!(uint64_t(5) > uint256_t(5)));
+        CHECK(!(uint64_t(5) < uint256_t(5)));
+    }
+
+    // Comparison with large uint256_t (native type should be less)
+    {
+        const uint256_t big(uint128_t(1, 0), uint128_0);
+        CHECK(uint64_t(5) < big);
+        CHECK(uint64_t(5) <= big);
+        CHECK(uint64_t(5) != big);
+        CHECK(!(uint64_t(5) > big));
+        CHECK(!(uint64_t(5) >= big));
+        CHECK(!(uint64_t(5) == big));
+    }
+
+    // Bitwise with native LHS
+    {
+        CHECK_EQ(uint64_t(0xFF) & uint256_t(0x0F), uint256_t(0x0F));
+        CHECK_EQ(uint64_t(0xF0) | uint256_t(0x0F), uint256_t(0xFF));
+        CHECK_EQ(uint64_t(0xFF) ^ uint256_t(0x0F), uint256_t(0xF0));
+    }
+
+    // Shift with native LHS
+    {
+        CHECK_EQ(uint64_t(1) << uint256_t(4), uint256_t(16));
+        CHECK_EQ(uint64_t(16) >> uint256_t(4), uint256_t(1));
+        CHECK_EQ(uint32_t(1) << uint256_t(4), uint256_t(16));
+        CHECK_EQ(uint16_t(1) << uint256_t(4), uint256_t(16));
+        CHECK_EQ(uint8_t(1) << uint256_t(4), uint256_t(16));
+    }
+
+    // Smaller native types: uint8_t, uint16_t, uint32_t
+    {
+        CHECK_EQ(uint8_t(10) + uint256_t(5), uint256_t(15));
+        CHECK_EQ(uint16_t(1000) - uint256_t(500), uint256_t(500));
+        CHECK_EQ(uint32_t(100) * uint256_t(200), uint256_t(20000));
+        CHECK(uint8_t(5) == uint256_t(5));
+        CHECK(uint16_t(5) < uint256_t(6));
+        CHECK(uint32_t(5) > uint256_t(4));
+    }
+
+    // LHS native type + uint128_t (free function operators)
+    {
+        CHECK_EQ(uint64_t(100) + uint128_t(50), uint128_t(150));
+        CHECK_EQ(uint64_t(100) - uint128_t(50), uint128_t(50));
+        CHECK_EQ(uint64_t(10) * uint128_t(20), uint128_t(200));
+        CHECK_EQ(uint64_t(100) / uint128_t(10), uint128_t(10));
+        CHECK_EQ(uint64_t(100) % uint128_t(30), uint128_t(10));
+
+        CHECK(uint64_t(5) == uint128_t(5));
+        CHECK(uint64_t(5) != uint128_t(6));
+        CHECK(uint64_t(5) > uint128_t(4));
+        CHECK(uint64_t(5) < uint128_t(6));
+        CHECK(uint64_t(5) >= uint128_t(5));
+        CHECK(uint64_t(5) <= uint128_t(5));
+
+        CHECK_EQ(uint64_t(0xFF) & uint128_t(0x0F), uint128_t(0x0F));
+        CHECK_EQ(uint64_t(0xF0) | uint128_t(0x0F), uint128_t(0xFF));
+        CHECK_EQ(uint64_t(0xFF) ^ uint128_t(0x0F), uint128_t(0xF0));
+    }
+
+    // uint128_t LHS + uint256_t (free function operators)
+    {
+        CHECK_EQ(uint128_t(100) + uint256_t(50), uint256_t(150));
+        CHECK_EQ(uint128_t(100) - uint256_t(50), uint256_t(50));
+        CHECK_EQ(uint128_t(10) * uint256_t(20), uint256_t(200));
+        CHECK_EQ(uint128_t(100) / uint256_t(10), uint256_t(10));
+        CHECK_EQ(uint128_t(100) % uint256_t(30), uint256_t(10));
+
+        CHECK(uint128_t(5) == uint256_t(5));
+        CHECK(uint128_t(5) != uint256_t(6));
+        CHECK(uint128_t(5) > uint256_t(4));
+        CHECK(uint128_t(5) < uint256_t(6));
+
+        CHECK_EQ(uint128_t(0xFF) & uint256_t(0x0F), uint256_t(0x0F));
+        CHECK_EQ(uint128_t(0xF0) | uint256_t(0x0F), uint256_t(0xFF));
+        CHECK_EQ(uint128_t(0xFF) ^ uint256_t(0x0F), uint256_t(0xF0));
+    }
+}
+
+// ============================================================================
+// test_compound_assign_external
+// ============================================================================
+void test_compound_assign_external()
+{
+    // uint64_t LHS with uint256_t RHS
+    {
+        uint64_t v = 100;
+        v += uint256_t(50);
+        CHECK_EQ(v, uint64_t(150));
+    }
+    {
+        uint64_t v = 100;
+        v -= uint256_t(50);
+        CHECK_EQ(v, uint64_t(50));
+    }
+    {
+        uint64_t v = 10;
+        v *= uint256_t(20);
+        CHECK_EQ(v, uint64_t(200));
+    }
+    {
+        uint64_t v = 100;
+        v /= uint256_t(10);
+        CHECK_EQ(v, uint64_t(10));
+    }
+    {
+        uint64_t v = 100;
+        v %= uint256_t(30);
+        CHECK_EQ(v, uint64_t(10));
+    }
+    {
+        uint64_t v = 0xFF;
+        v &= uint256_t(0x0F);
+        CHECK_EQ(v, uint64_t(0x0F));
+    }
+    {
+        uint64_t v = 0xF0;
+        v |= uint256_t(0x0F);
+        CHECK_EQ(v, uint64_t(0xFF));
+    }
+    {
+        uint64_t v = 0xFF;
+        v ^= uint256_t(0xFF);
+        CHECK_EQ(v, uint64_t(0));
+    }
+    {
+        uint64_t v = 1;
+        v <<= uint256_t(4);
+        CHECK_EQ(v, uint64_t(16));
+    }
+    {
+        uint64_t v = 16;
+        v >>= uint256_t(4);
+        CHECK_EQ(v, uint64_t(1));
+    }
+
+    // uint128_t LHS with uint256_t RHS
+    {
+        uint128_t v(100);
+        v += uint256_t(50);
+        CHECK(v == uint128_t(150));
+    }
+    {
+        uint128_t v(100);
+        v -= uint256_t(50);
+        CHECK(v == uint128_t(50));
+    }
+    {
+        uint128_t v(10);
+        v *= uint256_t(20);
+        CHECK(v == uint128_t(200));
+    }
+    {
+        uint128_t v(100);
+        v /= uint256_t(10);
+        CHECK(v == uint128_t(10));
+    }
+    {
+        uint128_t v(100);
+        v %= uint256_t(30);
+        CHECK(v == uint128_t(10));
+    }
+    {
+        uint128_t v(0xFF);
+        v &= uint256_t(0x0F);
+        CHECK(v == uint128_t(0x0F));
+    }
+    {
+        uint128_t v(0xF0);
+        v |= uint256_t(0x0F);
+        CHECK(v == uint128_t(0xFF));
+    }
+    {
+        uint128_t v(0xFF);
+        v ^= uint256_t(0xFF);
+        CHECK(v == uint128_t(0));
+    }
+    {
+        uint128_t v(1);
+        v <<= uint256_t(4);
+        CHECK(v == uint128_t(16));
+    }
+    {
+        uint128_t v(16);
+        v >>= uint256_t(4);
+        CHECK(v == uint128_t(1));
+    }
+
+    // uint64_t LHS with uint128_t RHS
+    {
+        uint64_t v = 100;
+        v += uint128_t(50);
+        CHECK_EQ(v, uint64_t(150));
+    }
+    {
+        uint64_t v = 100;
+        v -= uint128_t(50);
+        CHECK_EQ(v, uint64_t(50));
+    }
+    {
+        uint64_t v = 10;
+        v *= uint128_t(20);
+        CHECK_EQ(v, uint64_t(200));
+    }
+    {
+        uint64_t v = 100;
+        v /= uint128_t(10);
+        CHECK_EQ(v, uint64_t(10));
+    }
+    {
+        uint64_t v = 100;
+        v %= uint128_t(30);
+        CHECK_EQ(v, uint64_t(10));
+    }
+    {
+        uint64_t v = 0xFF;
+        v &= uint128_t(0x0F);
+        CHECK_EQ(v, uint64_t(0x0F));
+    }
+    {
+        uint64_t v = 0xF0;
+        v |= uint128_t(0x0F);
+        CHECK_EQ(v, uint64_t(0xFF));
+    }
+    {
+        uint64_t v = 0xFF;
+        v ^= uint128_t(0xFF);
+        CHECK_EQ(v, uint64_t(0));
+    }
+    {
+        uint64_t v = 1;
+        v <<= uint128_t(4);
+        CHECK_EQ(v, uint64_t(16));
+    }
+    {
+        uint64_t v = 16;
+        v >>= uint128_t(4);
+        CHECK_EQ(v, uint64_t(1));
+    }
+}
+
+// ============================================================================
+// test_string_parsing_edge_cases
+// ============================================================================
+void test_string_parsing_edge_cases()
+{
+    // Leading zeros
+    CHECK_EQ(uint256_t("000000ff", 16), uint256_t(0xFF));
+    CHECK_EQ(uint256_t("00000000000000001", 10), uint256_t(1));
+    CHECK_EQ(uint256_t("00000001", 2), uint256_t(1));
+
+    // Single character
+    CHECK_EQ(uint256_t("0", 10), uint256_0);
+    CHECK_EQ(uint256_t("1", 10), uint256_1);
+    CHECK_EQ(uint256_t("f", 16), uint256_t(15));
+    CHECK_EQ(uint256_t("7", 8), uint256_t(7));
+    CHECK_EQ(uint256_t("1", 2), uint256_1);
+
+    // Max-length hex (64 f's = uint256_max)
+    {
+        std::string max_hex(64, 'f');
+        CHECK_EQ(uint256_t(max_hex, 16), uint256_max);
+    }
+
+    // Max-length binary (256 1's = uint256_max)
+    {
+        std::string max_bin(256, '1');
+        CHECK_EQ(uint256_t(max_bin, 2), uint256_max);
+    }
+
+    // Uppercase hex
+    CHECK_EQ(uint256_t("ABCDEF", 16), uint256_t(0xABCDEF));
+
+    // Mixed case hex
+    CHECK_EQ(uint256_t("AbCdEf", 16), uint256_t(0xABCDEF));
+
+    // Base 36
+    CHECK_EQ(uint256_t("z", 36), uint256_t(35));
+    CHECK_EQ(uint256_t("Z", 36), uint256_t(35));
+    CHECK_EQ(uint256_t("10", 36), uint256_t(36));
+    CHECK_EQ(uint256_t("zzzz", 36), uint256_t(36ULL * 36 * 36 * 36 - 1));
+
+    // Empty and null with base
+    CHECK_EQ(uint256_t("", 10), uint256_0);
+    CHECK_EQ(uint256_t((const char *)nullptr, 10), uint256_0);
+
+    // Invalid digit for base
+    CHECK_THROW(uint256_t("2", 2), std::invalid_argument);
+    CHECK_THROW(uint256_t("8", 8), std::invalid_argument);
+    CHECK_THROW(uint256_t("a", 10), std::invalid_argument);
+    CHECK_THROW(uint256_t("g", 16), std::invalid_argument);
+
+    // Roundtrip: value -> str(base) -> parse(base) -> same value
+    {
+        const uint256_t val(0x123456789ABCDEFULL);
+        CHECK_EQ(uint256_t(val.str(10), 10), val);
+        CHECK_EQ(uint256_t(val.str(16), 16), val);
+        CHECK_EQ(uint256_t(val.str(2), 2), val);
+        CHECK_EQ(uint256_t(val.str(8), 8), val);
+        CHECK_EQ(uint256_t(val.str(36), 36), val);
+    }
+
+    // Roundtrip with large value (all 256 bits active)
+    {
+        const uint256_t val(
+            uint128_t(0xDEADBEEFCAFEBABEULL, 0x1234567890ABCDEFULL),
+            uint128_t(0xFEDCBA0987654321ULL, 0x0011223344556677ULL));
+        CHECK_EQ(uint256_t(val.str(10), 10), val);
+        CHECK_EQ(uint256_t(val.str(16), 16), val);
+        CHECK_EQ(uint256_t(val.str(2), 2), val);
+    }
+}
+
+// ============================================================================
+// test_uint128_boundary
+// ============================================================================
+void test_uint128_boundary()
+{
+    static const uint128_t uint128_max_local(uint64_t(-1), uint64_t(-1));
+
+    // Overflow wrapping
+    CHECK(uint128_max_local + uint128_t(1) == uint128_t(0));
+    CHECK(uint128_t(0) - uint128_t(1) == uint128_max_local);
+    CHECK(uint128_max_local * uint128_t(2) == uint128_max_local - uint128_t(1));
+
+    // Shift boundaries
+    {
+        // << 63: bit 63 in lower
+        uint128_t r = uint128_t(1) << uint128_t(63);
+        CHECK(r.lower() == (uint64_t(1) << 63));
+        CHECK(r.upper() == 0ULL);
+    }
+    {
+        // << 64: bit 0 in upper
+        uint128_t r = uint128_t(1) << uint128_t(64);
+        CHECK(r.lower() == 0ULL);
+        CHECK(r.upper() == 1ULL);
+    }
+    {
+        // << 65: bit 1 in upper
+        uint128_t r = uint128_t(1) << uint128_t(65);
+        CHECK(r.lower() == 0ULL);
+        CHECK(r.upper() == 2ULL);
+    }
+    {
+        // << 127: highest bit
+        uint128_t r = uint128_t(1) << uint128_t(127);
+        CHECK(r.lower() == 0ULL);
+        CHECK(r.upper() == (uint64_t(1) << 63));
+    }
+    {
+        // << 128: overflow to zero
+        uint128_t r = uint128_t(1) << uint128_t(128);
+        CHECK(r == uint128_t(0));
+    }
+
+    // Right shift boundaries
+    {
+        uint128_t high_bit(uint64_t(1) << 63, 0); // bit 127 set
+        CHECK((high_bit >> uint128_t(63)) == uint128_t(1, 0));
+        CHECK((high_bit >> uint128_t(64)) == uint128_t(0, uint64_t(1) << 63));
+        CHECK((high_bit >> uint128_t(65)) == uint128_t(0, uint64_t(1) << 62));
+        CHECK((high_bit >> uint128_t(127)) == uint128_t(1));
+        CHECK((high_bit >> uint128_t(128)) == uint128_t(0));
+    }
+
+    // Division with large values
+    CHECK(uint128_max_local / uint128_t(2) == uint128_t(uint64_t(-1) >> 1, uint64_t(-1)));
+    CHECK(uint128_max_local / uint128_max_local == uint128_t(1));
+    CHECK(uint128_max_local % uint128_t(2) == uint128_t(1));
+
+    // bits() at boundaries
+    CHECK(uint128_t(0).bits() == 0);
+    CHECK(uint128_t(1).bits() == 1);
+    CHECK(uint128_t(0, uint64_t(-1)).bits() == 64);
+    CHECK(uint128_t(1, 0).bits() == 65);
+    CHECK(uint128_max_local.bits() == 128);
+}
+
+// ============================================================================
+// test_export_bits_edge_cases
+// ============================================================================
+void test_export_bits_edge_cases()
+{
+    // uint256_t(0) export_bits: 32 zero bytes
+    {
+        auto bits = uint256_t(0).export_bits();
+        CHECK(bits.size() == 32u);
+        bool all_zero = true;
+        for (auto b : bits)
+        {
+            if (b != 0x00)
+            {
+                all_zero = false;
+            }
+        }
+        CHECK(all_zero);
+    }
+
+    // uint256_t(1) export_bits: bytes[31] == 0x01
+    {
+        auto bits = uint256_t(1).export_bits();
+        CHECK(bits.size() == 32u);
+        CHECK(bits[31] == 0x01);
+        CHECK(bits[30] == 0x00);
+        CHECK(bits[0] == 0x00);
+    }
+
+    // uint256_t(0xFF) export_bits: bytes[31] == 0xFF
+    {
+        auto bits = uint256_t(0xFF).export_bits();
+        CHECK(bits.size() == 32u);
+        CHECK(bits[31] == 0xFF);
+        CHECK(bits[30] == 0x00);
+    }
+
+    // uint256_max export_bits: 32 bytes of 0xFF
+    {
+        auto bits = uint256_max.export_bits();
+        CHECK(bits.size() == 32u);
+        bool all_ff = true;
+        for (auto b : bits)
+        {
+            if (b != 0xFF)
+            {
+                all_ff = false;
+            }
+        }
+        CHECK(all_ff);
+    }
+
+    // uint256_t(1) export_bits_truncate: single byte {0x01}
+    {
+        auto bits = uint256_t(1).export_bits_truncate();
+        CHECK(bits.size() == 1u);
+        CHECK(bits[0] == 0x01);
+    }
+
+    // uint256_t(0x100) export_bits_truncate: {0x01, 0x00}
+    {
+        auto bits = uint256_t(0x100).export_bits_truncate();
+        CHECK(bits.size() == 2u);
+        CHECK(bits[0] == 0x01);
+        CHECK(bits[1] == 0x00);
+    }
+
+    // uint128_t export_bits: 16 zero bytes for zero
+    {
+        std::vector<uint8_t> bits;
+        uint128_t(0).export_bits(bits);
+        CHECK(bits.size() == 16u);
+        bool all_zero = true;
+        for (auto b : bits)
+        {
+            if (b != 0x00)
+            {
+                all_zero = false;
+            }
+        }
+        CHECK(all_zero);
+    }
+
+    // uint128_t export_bits: value 1
+    {
+        std::vector<uint8_t> bits;
+        uint128_t(1).export_bits(bits);
+        CHECK(bits.size() == 16u);
+        CHECK(bits[15] == 0x01);
+        CHECK(bits[14] == 0x00);
+    }
+
+    // uint128_t max export_bits: 16 bytes of 0xFF
+    {
+        std::vector<uint8_t> bits;
+        uint128_t(uint64_t(-1), uint64_t(-1)).export_bits(bits);
+        CHECK(bits.size() == 16u);
+        bool all_ff = true;
+        for (auto b : bits)
+        {
+            if (b != 0xFF)
+            {
+                all_ff = false;
+            }
+        }
+        CHECK(all_ff);
+    }
+}
+
+// ============================================================================
+// test_uint128_string_all_bases
+// ============================================================================
+void test_uint128_string_all_bases()
+{
+    // Zero across all common bases
+    CHECK(uint128_t(0).str(2) == "0");
+    CHECK(uint128_t(0).str(8) == "0");
+    CHECK(uint128_t(0).str(10) == "0");
+    CHECK(uint128_t(0).str(16) == "0");
+    CHECK(uint128_t(0).str(36) == "0");
+
+    // Known value across bases
+    CHECK(uint128_t(255).str(2) == "11111111");
+    CHECK(uint128_t(255).str(8) == "377");
+    CHECK(uint128_t(255).str(10) == "255");
+    CHECK(uint128_t(255).str(16) == "ff");
+
+    // Large value (both halves populated)
+    {
+        uint128_t val(0x0123456789ABCDEFULL, 0xFEDCBA9876543210ULL);
+        // Verify non-empty and consistent across roundtrip via uint256_t
+        std::string dec_str = val.str(10);
+        CHECK(!dec_str.empty());
+        CHECK(dec_str[0] != '0'); // no leading zero for non-zero value
+        CHECK(uint256_t(dec_str, 10) == uint256_t(val));
+
+        std::string hex_str = val.str(16);
+        CHECK(!hex_str.empty());
+        CHECK(uint256_t(hex_str, 16) == uint256_t(val));
+    }
+
+    // Roundtrip: uint128_t -> str -> uint256_t parse -> compare
+    {
+        uint128_t val(12345);
+        CHECK(uint256_t(val.str(10), 10) == uint256_t(val));
+        CHECK(uint256_t(val.str(16), 16) == uint256_t(val));
+        CHECK(uint256_t(val.str(2), 2) == uint256_t(val));
+        CHECK(uint256_t(val.str(8), 8) == uint256_t(val));
+    }
+
+    // Padded output
+    CHECK(uint128_t(0xFF).str(16, 8) == "000000ff");
+    CHECK(uint128_t(1).str(10, 5) == "00001");
+}
+
+// ============================================================================
+// test_arithmetic_properties
+// ============================================================================
+void test_arithmetic_properties()
+{
+    // Test values spanning different bit widths
+    const uint256_t small(0x123456789ABCDEFULL);
+    const uint256_t medium(uint128_t(0x42, 0x1234), uint128_0);
+    const uint256_t large(uint128_t(0xDEADBEEF, 0xCAFEBABE), uint128_t(0x12345678, 0x9ABCDEF0));
+
+    // Commutativity of addition
+    CHECK_EQ(small + medium, medium + small);
+    CHECK_EQ(small + large, large + small);
+    CHECK_EQ(medium + large, large + medium);
+
+    // Commutativity of multiplication
+    CHECK_EQ(small * medium, medium * small);
+    CHECK_EQ(small * uint256_t(7), uint256_t(7) * small);
+
+    // Associativity of addition
+    CHECK_EQ((small + medium) + large, small + (medium + large));
+
+    // Identity elements
+    CHECK_EQ(small + uint256_0, small);
+    CHECK_EQ(medium + uint256_0, medium);
+    CHECK_EQ(large + uint256_0, large);
+    CHECK_EQ(small * uint256_1, small);
+    CHECK_EQ(medium * uint256_1, medium);
+    CHECK_EQ(large * uint256_1, large);
+    CHECK_EQ(small * uint256_0, uint256_0);
+    CHECK_EQ(medium * uint256_0, uint256_0);
+    CHECK_EQ(large * uint256_0, uint256_0);
+
+    // Self-subtraction and self-division
+    CHECK_EQ(small - small, uint256_0);
+    CHECK_EQ(medium - medium, uint256_0);
+    CHECK_EQ(large - large, uint256_0);
+    CHECK_EQ(small / small, uint256_1);
+    CHECK_EQ(medium / medium, uint256_1);
+    CHECK_EQ(large / large, uint256_1);
+
+    // Division-remainder identity: (a / b) * b + (a % b) == a
+    {
+        CHECK_EQ((large / small) * small + (large % small), large);
+        CHECK_EQ((large / medium) * medium + (large % medium), large);
+        CHECK_EQ((medium / small) * small + (medium % small), medium);
+    }
+
+    // Distributivity: a * (b + c) == a * b + a * c (with small multiplier to avoid overflow ambiguity)
+    {
+        const uint256_t a(7);
+        const uint256_t b(0x123456789ULL);
+        const uint256_t c(0x987654321ULL);
+        CHECK_EQ(a * (b + c), a * b + a * c);
+    }
+
+    // Same properties for uint128_t
+    {
+        const uint128_t s128(0x123456789ABCDEFULL);
+        const uint128_t m128(0xDEADBEEFCAFEBABEULL);
+
+        CHECK(s128 + m128 == m128 + s128);
+        CHECK(s128 * uint128_t(7) == uint128_t(7) * s128);
+        CHECK(s128 + uint128_t(0) == s128);
+        CHECK(s128 * uint128_t(1) == s128);
+        CHECK(s128 * uint128_t(0) == uint128_t(0));
+        CHECK(s128 - s128 == uint128_t(0));
+        CHECK(s128 / s128 == uint128_t(1));
+        CHECK((m128 / s128) * s128 + (m128 % s128) == m128);
+    }
+}
+
+// ============================================================================
+// test_cross_type_operations
+// ============================================================================
+void test_cross_type_operations()
+{
+    // uint256_t op uint128_t — member operators
+    {
+        CHECK_EQ(uint256_t(1000) + uint128_t(500), uint256_t(1500));
+        CHECK_EQ(uint256_t(1000) - uint128_t(500), uint256_t(500));
+        CHECK_EQ(uint256_t(100) * uint128_t(200), uint256_t(20000));
+        CHECK_EQ(uint256_t(100) / uint128_t(10), uint256_t(10));
+        CHECK_EQ(uint256_t(100) % uint128_t(30), uint256_t(10));
+    }
+
+    // Bitwise cross-type
+    {
+        CHECK_EQ(uint256_t(0xFF) & uint128_t(0x0F), uint256_t(0x0F));
+        CHECK_EQ(uint256_t(0xF0) | uint128_t(0x0F), uint256_t(0xFF));
+        CHECK_EQ(uint256_t(0xFF) ^ uint128_t(0xFF), uint256_t(0));
+    }
+
+    // Comparison cross-type
+    {
+        CHECK(uint256_t(100) == uint128_t(100));
+        CHECK(uint256_t(100) != uint128_t(99));
+        CHECK(uint256_t(100) > uint128_t(50));
+        CHECK(uint256_t(50) < uint128_t(100));
+        CHECK(uint256_t(100) >= uint128_t(100));
+        CHECK(uint256_t(100) <= uint128_t(100));
+    }
+
+    // Large uint256_t vs uint128_t
+    {
+        const uint256_t big(uint128_t(1, 0), uint128_0);
+        CHECK(big > uint128_t(uint64_t(-1), uint64_t(-1)));
+        CHECK(big != uint128_t(0));
+    }
+
+    // Compound assignment: uint256_t op= uint128_t
+    {
+        uint256_t v(100);
+        v += uint128_t(50);
+        CHECK_EQ(v, uint256_t(150));
+    }
+    {
+        uint256_t v(100);
+        v -= uint128_t(50);
+        CHECK_EQ(v, uint256_t(50));
+    }
+    {
+        uint256_t v(10);
+        v *= uint128_t(20);
+        CHECK_EQ(v, uint256_t(200));
+    }
+    {
+        uint256_t v(100);
+        v /= uint128_t(10);
+        CHECK_EQ(v, uint256_t(10));
+    }
+    {
+        uint256_t v(100);
+        v %= uint128_t(30);
+        CHECK_EQ(v, uint256_t(10));
+    }
+    {
+        uint256_t v(0xFF);
+        v &= uint128_t(0x0F);
+        CHECK_EQ(v, uint256_t(0x0F));
+    }
+    {
+        uint256_t v(0xF0);
+        v |= uint128_t(0x0F);
+        CHECK_EQ(v, uint256_t(0xFF));
+    }
+    {
+        uint256_t v(0xFF);
+        v ^= uint128_t(0xFF);
+        CHECK_EQ(v, uint256_t(0));
+    }
+
+    // Shift with uint128_t
+    {
+        // 1 << 128 sets bit 128 => upper.lower bit 0
+        uint256_t shifted = uint256_t(1) << uint128_t(128);
+        CHECK_EQ(shifted.upper().lower(), 1ULL);
+        CHECK_EQ(shifted.upper().upper(), 0ULL);
+        CHECK_EQ(shifted.lower(), uint128_0);
+
+        // Reverse: shift back
+        CHECK_EQ(shifted >> uint128_t(128), uint256_t(1));
+    }
+
+    // Cast uint256_t to uint128_t (returns full LOWER 128-bit half)
+    {
+        uint256_t small_val(0x42);
+        CHECK((uint128_t)small_val == uint128_t(0x42));
+
+        // Values with both upper and lower 64-bit halves populated in LOWER
+        uint128_t expected_lower(0xABULL, 0xCDULL);
+        uint256_t with_lower(uint128_0, expected_lower);
+        CHECK((uint128_t)with_lower == expected_lower);
+        CHECK(static_cast<uint128_t>(with_lower) == expected_lower);
+
+        // Assignment from uint256_t to uint128_t also preserves full 128 bits
+        uint128_t assigned;
+        assigned = (uint128_t)with_lower;
+        CHECK(assigned == expected_lower);
+    }
+
+    // Logical cross-type
+    {
+        CHECK(uint256_t(1) && uint128_t(1));
+        CHECK(!(uint256_t(0) && uint128_t(1)));
+        CHECK(uint256_t(0) || uint128_t(1));
+        CHECK(!(uint256_t(0) || uint128_t(0)));
+    }
+}
+
+// ============================================================================
 // main
 // ============================================================================
 int main()
@@ -1876,6 +2764,15 @@ int main()
     test_uint256_functions();
     test_audit_fixes();
     test_audit_fixes_pass2();
+    test_shift_boundary_values();
+    test_free_functions();
+    test_compound_assign_external();
+    test_string_parsing_edge_cases();
+    test_uint128_boundary();
+    test_export_bits_edge_cases();
+    test_uint128_string_all_bases();
+    test_arithmetic_properties();
+    test_cross_type_operations();
 
     TEST_RESULTS("all");
 }

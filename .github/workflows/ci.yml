@@ -38,6 +38,12 @@ jobs:
             CMAKE_CMD: cmake .. -DENABLE_WERROR=ON
             NAME: clang-15
 
+          - os: ubuntu-latest
+            CC: clang-15
+            CXX: clang++-15
+            CMAKE_CMD: cmake .. -DENABLE_SANITIZERS=ON -DCMAKE_BUILD_TYPE=Debug
+            NAME: clang-15-sanitizers
+
           - os: macos-latest
             CC: /opt/homebrew/opt/llvm/bin/clang
             CXX: /opt/homebrew/opt/llvm/bin/clang++
@@ -94,3 +100,31 @@ jobs:
         run: |
           cd build
           ctest -C Debug --output-on-failure
+
+  fuzz_test:
+    runs-on: ubuntu-latest
+    name: Fuzz smoke test (10s per target)
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install Clang 15
+        run: |
+          sudo apt update
+          sudo apt install -y clang-15
+      - name: Configure
+        env:
+          CC: clang-15
+          CXX: clang++-15
+        run: |
+          mkdir build && cd build
+          cmake .. -DBUILD_FUZZERS=ON -DBUILD_TESTS=OFF -DCMAKE_BUILD_TYPE=Release
+      - name: Build fuzzers
+        run: cmake --build build -j
+      - name: Run fuzz smoke tests
+        run: |
+          for fuzzer in build/fuzz_string_parse build/fuzz_arithmetic build/fuzz_bitops build/fuzz_roundtrip build/fuzz_cross_type; do
+            echo "=== Running $(basename $fuzzer) ==="
+            $fuzzer -max_total_time=10 -print_final_stats=1 2>&1 | tail -10
+            echo
+          done

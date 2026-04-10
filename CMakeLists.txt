@@ -24,6 +24,7 @@ endif()
 option(BUILD_TESTS "Build test executables" ON)
 option(ENABLE_WERROR "Treat warnings as errors" OFF)
 option(ENABLE_SANITIZERS "Enable ASAN + UBSAN (Debug builds)" OFF)
+option(BUILD_FUZZERS "Build fuzz test targets (requires Clang + libFuzzer)" OFF)
 
 
 # --- Detect MinGW environment ---
@@ -242,4 +243,56 @@ if(BUILD_TESTS)
     endif()
 
     add_test(NAME uint256-tests COMMAND uint256-tests)
+endif()
+
+# ---------------------------------------------------------------------------
+# Fuzz targets (Clang libFuzzer only)
+# ---------------------------------------------------------------------------
+if(BUILD_FUZZERS)
+    if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        message(FATAL_ERROR "BUILD_FUZZERS requires Clang (for libFuzzer support)")
+    endif()
+
+    # Ensure the library itself is instrumented for sanitizers
+    target_compile_options(uint256t PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+    target_link_options(uint256t PRIVATE -fsanitize=address,undefined)
+
+    set(FUZZ_TARGETS
+        fuzz_string_parse
+        fuzz_arithmetic
+        fuzz_bitops
+        fuzz_roundtrip
+        fuzz_cross_type
+    )
+
+    # On Windows, libFuzzer runtime is built with /MT (static CRT).
+    # Force the library and fuzz targets to match.
+    if(WIN32)
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+        set_property(TARGET uint256t PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    endif()
+
+    foreach(target ${FUZZ_TARGETS})
+        add_executable(${target} tests/fuzz/${target}.cpp)
+        target_link_libraries(${target} PRIVATE uint256t)
+        target_include_directories(${target} PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz
+        )
+        set_target_properties(${target} PROPERTIES
+            CXX_STANDARD 17
+            CXX_STANDARD_REQUIRED ON
+            CXX_EXTENSIONS OFF
+        )
+        if(WIN32)
+            set_property(TARGET ${target} PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+        endif()
+        target_compile_options(${target} PRIVATE
+            -fsanitize=fuzzer,address,undefined
+            -fno-omit-frame-pointer
+        )
+        target_link_options(${target} PRIVATE
+            -fsanitize=fuzzer,address,undefined
+        )
+    endforeach()
 endif()
