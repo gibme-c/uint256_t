@@ -20,8 +20,17 @@ if(CCACHE_PROGRAM)
     set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
 endif()
 
+# Detect whether this is the top-level project (pre-3.21 compatible).
+# When consumed via add_subdirectory(), tests and fuzzers default to OFF so we
+# don't leak auxiliary targets into the parent build.
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    set(_uint256t_is_top_level ON)
+else()
+    set(_uint256t_is_top_level OFF)
+endif()
+
 # Options
-option(BUILD_TESTS "Build test executables" ON)
+option(BUILD_TESTS "Build test executables" ${_uint256t_is_top_level})
 option(ENABLE_WERROR "Treat warnings as errors" OFF)
 option(ENABLE_SANITIZERS "Enable ASAN + UBSAN (Debug builds)" OFF)
 option(BUILD_FUZZERS "Build fuzz test targets (requires Clang + libFuzzer)" OFF)
@@ -268,7 +277,6 @@ if(BUILD_FUZZERS)
     # On Windows, libFuzzer runtime is built with /MT (static CRT).
     # Force the library and fuzz targets to match.
     if(WIN32)
-        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
         set_property(TARGET uint256t PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
     endif()
 
